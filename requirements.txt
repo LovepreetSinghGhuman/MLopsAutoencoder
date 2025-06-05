@@ -1,0 +1,10 @@
+numpy
+pandas
+matplotlib
+joblib
+scikit-learn
+tensorflow
+keras
+keras-tuner
+kerastuner
+# Logging, os, json, warnings, pathlib, typing, gc are standard library modules and do not need to be installed.
