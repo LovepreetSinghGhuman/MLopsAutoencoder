@@ -217,6 +217,57 @@ def predict(file: UploadFile = File(...)):
 
     return PredictionResult(TransactionID=tx_ids, isFraud=is_fraud_preds)
 
+@app.post("/predict", response_model=PredictionResult)
+def predict(file: UploadFile = File(...)):
+    """
+    Endpoint: Upload an Excel (.xlsx/.xls) or CSV (.csv) file
+    with columns that match your training features (including TransactionID).
+    Returns a JSON with TransactionID and predicted isFraud (0/1).
+    """
+    # 1. Ensure it’s an Excel or CSV file
+    filename = file.filename.lower()
+    if filename.endswith(".csv"):
+        filetype = "csv"
+    elif filename.endswith(".xlsx") or filename.endswith(".xls"):
+        filetype = "excel"
+    else:
+        raise HTTPException(status_code=400, detail="Please upload an Excel (.xlsx/.xls) or CSV (.csv) file.")
+
+    # 2. Read into pandas
+    try:
+        if filetype == "csv":
+            df = pd.read_csv(file.file)
+        else:
+            df = pd.read_excel(file.file)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+
+    if "TransactionID" not in df.columns:
+        raise HTTPException(status_code=400, detail="File must contain a 'TransactionID' column.")
+
+    # 3. Preprocess (drop TransactionID internally, etc.)
+    try:
+        # Keep the IDs aside
+        tx_ids = df["TransactionID"].astype(str).tolist()
+
+        # Preprocess to numeric features: 
+        X_input, _, _ = preprocess_data(
+            df,
+            scaler=scaler,
+            is_train=False,
+            feature_columns=feature_columns
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Preprocessing error: {str(e)}")
+
+    # 4. Compute reconstruction error (MSE)
+    reconstructions = model.predict(X_input, batch_size=256)
+    mse = np.mean(np.square(X_input.values - reconstructions), axis=1)
+
+    # 5. Apply threshold → 0/1 classification
+    is_fraud_preds = (mse > threshold).astype(int).tolist()
+
+    return PredictionResult(TransactionID=tx_ids, isFraud=is_fraud_preds)
 
 # Optional: a health check endpoint
 @app.get("/health")
