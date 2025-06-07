@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fraud Detection Upload</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    #results {
+      margin-top: 20px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>Upload CSV File for Fraud Detection</h2>
+  <form id="upload-form">
+    <input type="file" id="file-input" name="file" accept=".csv,.xlsx,.xls" required />
+    <button type="submit">Upload & Predict</button>
+  </form>
+
+  <div id="results"></div>
+
+  <script>
+    const form = document.getElementById('upload-form');
+    const fileInput = document.getElementById('file-input');
+    const resultsDiv = document.getElementById('results');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Please select a file first.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!response.ok) {
+          const err = await response.text();
+          throw new Error(`Error: ${err}`);
+        }
+
+        const result = await response.json();
+        resultsDiv.innerText = JSON.stringify(result, null, 2);
+      } catch (err) {
+        resultsDiv.innerText = `Upload failed: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
