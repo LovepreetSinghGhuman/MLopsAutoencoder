@@ -380,33 +380,7 @@ def build_autoencoder(input_dim: int, version: str = "v1") -> Tuple[Model, Model
         - "v5": Deepest model with an explicit bottleneck, heavy dropout, and batch normalization.
     """
     input_layer = Input(shape=(input_dim,), name="input_layer")
-
-    if version == "v1":
-        # Basic version: 128 -> 64 in encoder; symmetric decoder
-        encoded = Dense(128, activation="relu", activity_regularizer=l2(1e-4), name="encoder_dense_1")(input_layer)
-        encoded = BatchNormalization(name="encoder_bn_1")(encoded)
-        encoded = Dense(64, activation="relu", name="encoder_dense_2")(encoded)
-
-        decoded = Dense(64, activation="relu", name="decoder_dense_1")(encoded)
-        decoded = Dense(128, activation="relu", name="decoder_dense_2")(decoded)
-        decoded = Dense(input_dim, activation="linear", name="output_layer")(decoded)
-
-    elif version == "v2":
-        # Adds dropout and stronger regularization
-        encoded = Dense(256, activation="relu", kernel_regularizer=l2(1e-4), name="encoder_dense_1")(input_layer)
-        encoded = BatchNormalization(name="encoder_bn_1")(encoded)
-        encoded = Dense(128, activation="relu", kernel_regularizer=l2(1e-4), name="encoder_dense_2")(encoded)
-        encoded = Dropout(0.2, name="encoder_dropout_1")(encoded)
-        encoded = Dense(64, activation="relu", name="encoder_dense_3")(encoded)
-
-        decoded = Dense(64, activation="relu", name="decoder_dense_1")(encoded)
-        decoded = Dropout(0.2, name="decoder_dropout_1")(decoded)
-        decoded = Dense(128, activation="relu", kernel_regularizer=l2(1e-4), name="decoder_dense_2")(decoded)
-        decoded = BatchNormalization(name="decoder_bn_1")(decoded)
-        decoded = Dense(256, activation="relu", kernel_regularizer=l2(1e-4), name="decoder_dense_3")(decoded)
-        decoded = Dense(input_dim, activation="linear", name="output_layer")(decoded)
-
-    elif version == "v3":
+    if version == "v3":
         # Improved version of v2 with deeper layers, advanced activation, and better regularization
         encoded = Dense(512, activation="relu", kernel_regularizer=l2(1e-4), name="encoder_dense_1")(input_layer)
         encoded = BatchNormalization(name="encoder_bn_1")(encoded)
@@ -424,55 +398,6 @@ def build_autoencoder(input_dim: int, version: str = "v1") -> Tuple[Model, Model
         decoded = Dropout(0.3, name="decoder_dropout_2")(decoded)
         decoded = Dense(512, activation="relu", kernel_regularizer=l2(1e-4), name="decoder_dense_4")(decoded)
         decoded = Dense(input_dim, activation="linear", name="output_layer")(decoded)
-
-    elif version == "v4":
-        # Uses LeakyReLU and advanced initialization/regularization
-        encoded = Dense(256, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="encoder_dense_1")(input_layer)
-        encoded = LeakyReLU(alpha=0.1, name="encoder_leakyrelu_1")(encoded)
-        encoded = BatchNormalization(name="encoder_bn_1")(encoded)
-        encoded = Dense(128, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="encoder_dense_2")(encoded)
-        encoded = LeakyReLU(alpha=0.1, name="encoder_leakyrelu_2")(encoded)
-        encoded = Dropout(0.25, name="encoder_dropout_1")(encoded)
-        encoded = Dense(64, kernel_initializer="he_normal", name="encoder_dense_3")(encoded)
-        encoded = LeakyReLU(alpha=0.1, name="encoder_leakyrelu_3")(encoded)
-
-        decoded = Dense(64, kernel_initializer="he_normal", name="decoder_dense_1")(encoded)
-        decoded = LeakyReLU(alpha=0.1, name="decoder_leakyrelu_1")(decoded)
-        decoded = Dropout(0.25, name="decoder_dropout_1")(decoded)
-        decoded = Dense(128, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="decoder_dense_2")(decoded)
-        decoded = LeakyReLU(alpha=0.1, name="decoder_leakyrelu_2")(decoded)
-        decoded = BatchNormalization(name="decoder_bn_1")(decoded)
-        decoded = Dense(256, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="decoder_dense_3")(decoded)
-        decoded = LeakyReLU(alpha=0.1, name="decoder_leakyrelu_3")(decoded)
-        decoded = Dense(input_dim, activation="linear", name="output_layer")(decoded)
-
-    elif version == "v5":
-        # Deeper model with a bottleneck layer
-        # Encoder
-        encoded = Dense(256, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="encoder_dense_1")(input_layer)
-        encoded = LeakyReLU(alpha=0.1, name="encoder_leakyrelu_1")(encoded)
-        encoded = BatchNormalization(name="encoder_bn_1")(encoded)
-        encoded = Dense(128, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="encoder_dense_2")(encoded)
-        encoded = LeakyReLU(alpha=0.1, name="encoder_leakyrelu_2")(encoded)
-        encoded = Dropout(0.50, name="encoder_dropout_1")(encoded)
-        encoded = Dense(64, kernel_initializer="he_normal", name="encoder_dense_3")(encoded)
-        encoded = LeakyReLU(alpha=0.1, name="encoder_leakyrelu_3")(encoded)
-
-        # Bottleneck layer
-        bottleneck = Dense(64, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="bottleneck")(encoded)
-        bottleneck = LeakyReLU(alpha=0.1, name="bottleneck_leakyrelu")(bottleneck)
-
-        # Decoder
-        decoded = Dense(64, kernel_initializer="he_normal", name="decoder_dense_1")(encoded)
-        decoded = LeakyReLU(alpha=0.1, name="decoder_leakyrelu_1")(decoded)
-        decoded = Dropout(0.50, name="decoder_dropout_1")(decoded)
-        decoded = Dense(128, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="decoder_dense_2")(decoded)
-        decoded = LeakyReLU(alpha=0.1, name="decoder_leakyrelu_2")(decoded)
-        decoded = BatchNormalization(name="decoder_bn_1")(decoded)
-        decoded = Dense(256, kernel_initializer="he_normal", kernel_regularizer=l2(1e-4), name="decoder_dense_3")(decoded)
-        decoded = LeakyReLU(alpha=0.1, name="decoder_leakyrelu_3")(decoded)
-        decoded = Dense(input_dim, activation="linear", name="output_layer")(decoded)
-
     else:
         raise ValueError(f"Unknown version: {version}")
 
@@ -597,7 +522,7 @@ best_version = None
 
 input_dim = X_train_auto.shape[1]
 
-for version in ["v1", "v2", "v3", "v4", "v5"] :
+for version in ["v3"] :
     logger.info(f"Training autoencoder version {version}...")
     autoencoder, encoder = build_autoencoder(input_dim=input_dim, version=version)
     history = train_autoencoder(autoencoder, X_train_auto, X_val_auto)
@@ -863,3 +788,21 @@ test_data_with_id = test_data.copy()
 test_data_with_id['TransactionID'] = transaction_ids
 create_submission_tuned_best_model(test_data_with_id)
 
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_dir", type=str, default="Data/Processed")
+    parser.add_argument("--model_dir", type=str, default="Models")
+    parser.add_argument("--results_dir", type=str, default="Results")
+    parser.add_argument("--epochs", type=int, default=150)
+    parser.add_argument("--batch_size", type=int, default=256)
+    args = parser.parse_args()
+
+    # Override config with arguments
+    Config.DATA_DIR_PROCESS = Path(args.data_dir)
+    Config.MODEL_DIR = Path(args.model_dir)
+    Config.RESULTS_DIR = Path(args.results_dir)
+    Config.EPOCHS = args.epochs
+    Config.BATCH_SIZE = args.batch_size
+    Config.prepare_dirs()
