@@ -1,0 +1,11 @@
+command: >-
+  python train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}}
+inputs:
+  train_data:
+    type: uri_file
+    path: azureml:cleaned_train@latest
+outputs:
+  model_dir:
+    type: uri_folder
+environment: azureml://registries/azureml/environments/tensorflow-2.15-ubuntu20.04-py39-cuda11-gpu/versions/1
+compute: azureml:fraudAKSCluster
