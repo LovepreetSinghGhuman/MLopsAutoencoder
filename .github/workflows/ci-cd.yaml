@@ -1,5 +1,3 @@
-# .github/workflows/ci-cd.yml
-
 name: Build_and_Deploy
 
 on:
@@ -20,21 +18,15 @@ jobs:
       - name: Log in to Azure CLI
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}  # GitHub secret with JSON output of `az ad sp create-for-rbac --sdk-auth`
-
-      - name: Azure CLI: get ACR login server
-        id: acrinfo
-        run: |
-          ACR_NAME=fraudACR12345
-          echo "ACR_LOGIN_SERVER=$(az acr show -n $ACR_NAME --query loginServer -o tsv)" >> $GITHUB_OUTPUT
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log in to ACR (Docker)
         run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ steps.acrinfo.outputs.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
 
       - name: Build and push Docker image
         run: |
-          IMAGE_TAG=${{ steps.acrinfo.outputs.ACR_LOGIN_SERVER }}/fraud-detector:latest
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/fraud-detector:latest
           docker build -f deployment/Dockerfile -t $IMAGE_TAG .
           docker push $IMAGE_TAG
 
@@ -55,5 +47,5 @@ jobs:
       - name: Update Kubernetes Deployment image
         run: |
           kubectl set image deployment/fraud-detector-deployment \
-            fraud-detector=${{ steps.acrinfo.outputs.ACR_LOGIN_SERVER }}/fraud-detector:latest \
+            fraud-detector=${{ secrets.ACR_LOGIN_SERVER }}/fraud-detector:latest \
             --namespace default
