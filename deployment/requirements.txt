@@ -6,5 +6,8 @@ scikit-learn
 tensorflow
 keras
 keras-tuner
-kerastuner
+fastapi
+uvicorn
+azure-ai-ml
+openpyxl
 # Logging, os, json, warnings, pathlib, typing, gc are standard library modules and do not need to be installed.
