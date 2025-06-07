@@ -5,6 +5,17 @@ on:
     branches:
       - main
 
+env:
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}  # e.g., fraudacr12345.azurecr.io
+  ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+  ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+  IMAGE_NAME: fraud-detector
+  RESOURCE_GROUP: fraud-rg
+  CLUSTER_NAME: fraudAKSCluster
+  DEPLOYMENT_NAME: fraud-detector-deployment
+  CONTAINER_NAME: fraud-detector
+  NAMESPACE: default
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -12,21 +23,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to Azure CLI
+      - name: Log in to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Log in to ACR (Docker)
+      - name: Docker login to ACR
         run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
 
       - name: Build and push Docker image
         run: |
-          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/fraud-detector:latest
+          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:latest
           docker build -f deployment/Dockerfile -t $IMAGE_TAG .
           docker push $IMAGE_TAG
 
@@ -37,15 +45,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Azure CLI: AKS creds
-        uses: azure/aks-set-context@v1
+      - name: Log in to Azure
+        uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          resource-group: fraud-rg
-          cluster-name: fraudAKSCluster
 
-      - name: Update Kubernetes Deployment image
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          cluster-name: ${{ env.CLUSTER_NAME }}
+          resource-group: ${{ env.RESOURCE_GROUP }}
+
+      - name: Update Kubernetes deployment image
         run: |
-          kubectl set image deployment/fraud-detector-deployment \
-            fraud-detector=${{ secrets.ACR_LOGIN_SERVER }}/fraud-detector:latest \
-            --namespace default
+          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:latest
+          kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_TAG --namespace $NAMESPACE

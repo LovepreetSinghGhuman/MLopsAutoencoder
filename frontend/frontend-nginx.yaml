@@ -1,0 +1,39 @@
+# frontend-nginx.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-nginx
+  template:
+    metadata:
+      labels:
+        app: frontend-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.21
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: static-files
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: static-files
+          configMap:
+            name: frontend-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-nginx
+spec:
+  selector:
+    app: frontend-nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
