@@ -32,7 +32,7 @@ jobs:
       - name: Install Azure ML CLI
         run: |
           pip install --upgrade pip
-          pip install azure-ai-ml azure-ml-cli
+          pip install azure-ai-ml
 
       - name: Submit Azure ML training job
         id: submit_job
