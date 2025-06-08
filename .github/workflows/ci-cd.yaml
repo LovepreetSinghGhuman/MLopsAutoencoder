@@ -11,6 +11,7 @@ env:
   ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
   IMAGE_NAME: fraud-detector
   RESOURCE_GROUP: fraud-rg
+  AML_WORKSPACE: fraud-workspace
   CLUSTER_NAME: fraudAKSCluster
   DEPLOYMENT_NAME: fraud-detector-deployment
   CONTAINER_NAME: fraud-detector
@@ -27,6 +28,26 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Azure ML CLI
+        run: |
+          pip install --upgrade pip
+          pip install azure-ai-ml azure-ml-cli
+
+      - name: Submit Azure ML training job
+        id: submit_job
+        run: |
+          az extension add -n ml -y
+          JOB_NAME=$(az ml job create --file deployment/train-job.yaml --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --query name -o tsv)
+          echo "job_name=$JOB_NAME" >> $GITHUB_OUTPUT
+
+      - name: Wait for Azure ML job to complete
+        run: |
+          az ml job wait --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
+
+      - name: Download model artifacts from Azure ML job outputs
+        run: |
+          az ml job download --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --output ./models --overwrite
 
       - name: Docker login to ACR
         run: |
