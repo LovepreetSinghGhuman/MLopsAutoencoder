@@ -7,5 +7,5 @@ inputs:
 outputs:
   model_dir:
     type: uri_folder
-environment: azureml://registries/azureml/environments/tensorflow-2.15-ubuntu20.04-py39-cuda11-gpu/versions/1
 compute: azureml:fraudAKSCluster
+environment: azureml://registries/azureml/environments/tensorflow-2.15-ubuntu20.04-py39-cpu/versions/1
