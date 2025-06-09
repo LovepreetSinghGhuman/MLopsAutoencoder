@@ -34,6 +34,9 @@ jobs:
           pip install --upgrade pip
           pip install azure-ai-ml
 
+      - name: Change to repo root
+        run: cd $GITHUB_WORKSPACE
+
       - name: Submit Azure ML training job
         id: submit_job
         run: |
