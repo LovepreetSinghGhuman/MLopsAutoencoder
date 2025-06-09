@@ -81,7 +81,6 @@ jobs:
             --file deployment/train-job.yaml \
             --resource-group $RESOURCE_GROUP \
             --workspace-name $AML_WORKSPACE \
-            --inputs train_data=azureml:${{ env.AML_TRAIN_DATA_ASSET }} \
             --query name -o tsv)
           echo "job_name=$JOB_NAME" >> $GITHUB_OUTPUT
 
