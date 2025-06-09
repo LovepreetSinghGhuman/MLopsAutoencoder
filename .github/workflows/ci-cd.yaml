@@ -40,16 +40,19 @@ jobs:
       - name: Submit Azure ML training job
         id: submit_job
         run: |
+          cd $GITHUB_WORKSPACE
           az extension add -n ml -y
           JOB_NAME=$(az ml job create --file deployment/train-job.yaml --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --query name -o tsv)
           echo "job_name=$JOB_NAME" >> $GITHUB_OUTPUT
 
       - name: Wait for Azure ML job to complete
         run: |
+          cd $GITHUB_WORKSPACE
           az ml job wait --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
 
       - name: Download model artifacts from Azure ML job outputs
         run: |
+          cd $GITHUB_WORKSPACE
           az ml job download --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --output ./models --overwrite
 
       - name: Docker login to ACR
