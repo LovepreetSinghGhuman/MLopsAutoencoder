@@ -1,3 +1,4 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 command: >-
   python src/train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}}
 inputs:
@@ -5,6 +6,7 @@ inputs:
     type: uri_file
 outputs:
   model_dir:
+    type: uri_folder
 compute: azureml:mycpucluster
 environment:
   conda_file: conda.yaml
