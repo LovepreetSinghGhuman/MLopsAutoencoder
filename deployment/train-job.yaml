@@ -9,5 +9,5 @@ outputs:
     type: uri_folder
 compute: azureml:mycpucluster
 environment:
-  name: fraud-tf-cpu
-  version: 1
+  conda_file: ./deployment/conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
