@@ -1,0 +1,2 @@
+/bin/bash: /azureml-envs/azureml_0063dd15155576c61d88501f1feef529/lib/libtinfo.so.6: no version information available (required by /bin/bash)
+python: can't open file '/mnt/azureml/cr/j/f4695263c3e54e119e5b8cf63a6bd347/exe/wd/src/train.py': [Errno 2] No such file or directory
