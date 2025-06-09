@@ -3,6 +3,7 @@ FROM python:3.9-slim
 
 # Set environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # Install system dependencies for pandas, openpyxl, and TensorFlow
 RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*

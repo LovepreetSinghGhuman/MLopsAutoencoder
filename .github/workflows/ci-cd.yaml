@@ -14,6 +14,7 @@ on:
 #   which must specify 'compute: azureml:mycpucluster'.
 # - The AKS cluster is used for serving the model after deployment.
 # - Docker images are built and pushed to Azure Container Registry (ACR).
+# - Before building the Docker image, we check that all relevant files are UTF-8 encoded.
 # -----------------------------------------------------------------------------
 
 env:
@@ -50,6 +51,12 @@ jobs:
           az version
           az extension add -n ml -y --upgrade
           az extension show -n ml
+
+      - name: Check file encoding (should be UTF-8)
+        run: |
+          echo "Checking encoding for requirements.txt, Python, and CSV files..."
+          find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) | \
+            xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || (echo "Non-UTF-8 encoding detected in: {}" && exit 1)'
 
       - name: Build Docker image for Autoencoder
         run: |

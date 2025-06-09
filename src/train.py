@@ -139,14 +139,16 @@ def main(args):
     # Save artifacts
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     model.save(os.path.join(args.output_dir, "best_autoencoder.keras"))
-    joblib.dump(scaler, os.path.join(args.output_dir, "scaler.joblib"))
-    with open(os.path.join(args.output_dir, "autoencoder_config.json"), "w") as f:
+    # joblib handles binary mode internally, but for explicitness:
+    with open(os.path.join(args.output_dir, "scaler.joblib"), "wb") as f:
+        joblib.dump(scaler, f)
+    with open(os.path.join(args.output_dir, "autoencoder_config.json"), "w", encoding="utf-8") as f:
         json.dump({
             "input_dim": input_dim,
             "feature_columns": feature_columns
-        }, f)
-    with open(os.path.join(args.output_dir, "best_threshold.json"), "w") as f:
-        json.dump({"threshold": threshold}, f)
+        }, f, ensure_ascii=False)
+    with open(os.path.join(args.output_dir, "best_threshold.json"), "w", encoding="utf-8") as f:
+        json.dump({"threshold": threshold}, f, ensure_ascii=False)
     print(f"Training complete. Artifacts saved to {args.output_dir}")
 
 # ----------------- CLI -----------------
