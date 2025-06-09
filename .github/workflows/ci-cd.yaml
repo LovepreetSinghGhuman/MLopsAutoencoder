@@ -103,7 +103,7 @@ jobs:
           set -e
           cd $GITHUB_WORKSPACE
           JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
-          az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --output ./models --overwrite
+          az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --download-path ./models --overwrite
 
           
   deploy:
