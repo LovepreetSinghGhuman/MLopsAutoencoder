@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}  # e.g., fraudacr12345.azurecr.io
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
   ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
   ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
   IMAGE_NAME: fraud-detector
@@ -16,10 +16,10 @@ env:
   DEPLOYMENT_NAME: fraud-detector-deployment
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
-  AML_TRAIN_DATA_ASSET: fraud-train-data:1  # <-- Parameterized data asset
+  AML_TRAIN_DATA_ASSET: fraud-train-data:1
 
 jobs:
-  build-and-push:
+  setup:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -35,7 +35,42 @@ jobs:
           set -e
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az version
-          az extension add -n ml -y
+          az extension remove -n ml || true
+          az extension add -n ml -y --upgrade
+          az extension show -n ml
+
+  build-autoencoder:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Autoencoder
+        run: |
+          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
+          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Docker login to ACR
+        run: |
+          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
+
+      - name: Push Docker image
+        run: |
+          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
+
+  train-model:
+    needs: build-autoencoder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Submit Azure ML training job
         id: submit_job
@@ -69,18 +104,8 @@ jobs:
           cd $GITHUB_WORKSPACE
           az ml job download --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --output ./models --overwrite
 
-      - name: Docker login to ACR
-        run: |
-          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
-
-      - name: Build and push Docker image
-        run: |
-          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:latest
-          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
-          docker push $IMAGE_TAG
-
-  deploy-to-aks:
-    needs: build-and-push
+  deploy:
+    needs: train-model
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -96,6 +121,13 @@ jobs:
         with:
           cluster-name: ${{ env.CLUSTER_NAME }}
           resource-group: ${{ env.RESOURCE_GROUP }}
+
+      - name: Build and push Docker image for deployment
+        run: |
+          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:latest
+          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
+          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
+          docker push $IMAGE_TAG
 
       - name: Update Kubernetes deployment image
         run: |
