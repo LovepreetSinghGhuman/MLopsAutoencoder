@@ -7,5 +7,7 @@ inputs:
 outputs:
   model_dir:
     type: uri_folder
-compute: azureml:fraudAKSCluster           # compute cluster
-environment: fraud-tf-cpu@latest           # custom environment
+compute: azureml:fraudAKSCluster
+environment:
+  name: fraud-tf-cpu
+  version: 1
