@@ -5,6 +5,17 @@ on:
     branches:
       - main
 
+# -----------------------------------------------------------------------------
+# This workflow builds, trains, and deploys a fraud detection model using Azure.
+#
+# - The Azure ML compute cluster for training is called 'mycpucluster'.
+# - The AKS cluster for deployment is called 'fraudAKSCluster'.
+# - The training job is submitted to Azure ML using deployment/train-job.yaml,
+#   which must specify 'compute: azureml:mycpucluster'.
+# - The AKS cluster is used for serving the model after deployment.
+# - Docker images are built and pushed to Azure Container Registry (ACR).
+# -----------------------------------------------------------------------------
+
 env:
   ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
   ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
@@ -12,14 +23,16 @@ env:
   IMAGE_NAME: fraud-detector
   RESOURCE_GROUP: fraud-rg
   AML_WORKSPACE: fraud-workspace
+  # AKS cluster for deployment
   CLUSTER_NAME: fraudAKSCluster
   DEPLOYMENT_NAME: fraud-detector-deployment
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
+  # Azure ML dataset asset for training
   AML_TRAIN_DATA_ASSET: cleaned_train:1
 
 jobs:
-  setup:
+  build-and-train:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -30,21 +43,13 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install Azure CLI and ML extension
+      - name: Install Azure CLI v2 and ML extension
         run: |
           set -e
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az version
-          az extension remove -n ml || true
           az extension add -n ml -y --upgrade
           az extension show -n ml
-
-  build-autoencoder:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
 
       - name: Build Docker image for Autoencoder
         run: |
@@ -60,23 +65,10 @@ jobs:
         run: |
           docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
 
-  train-model:
-    needs: build-autoencoder
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Submit Azure ML training job
+      - name: Submit Azure ML training job and wait for completion
         id: submit_job
         run: |
           set -e
-          cd $GITHUB_WORKSPACE
           JOB_NAME=$(az ml job create \
             --file deployment/train-job.yaml \
             --resource-group $RESOURCE_GROUP \
@@ -84,11 +76,7 @@ jobs:
             --query name -o tsv)
           echo "job_name=$JOB_NAME" >> $GITHUB_OUTPUT
 
-      - name: Wait for Azure ML job to complete
-        run: |
-          set -e
-          cd $GITHUB_WORKSPACE
-          JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
+          # Wait for job to complete
           while true; do
             STATUS=$(az ml job show --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --query status -o tsv)
             echo "Current job status: $STATUS"
@@ -101,13 +89,11 @@ jobs:
       - name: Download model artifacts from Azure ML job outputs
         run: |
           set -e
-          cd $GITHUB_WORKSPACE
           JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
           az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --download-path ./models
 
-          
   deploy:
-    needs: train-model
+    needs: build-and-train
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -117,6 +103,12 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Azure CLI v2
+        run: |
+          set -e
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az version
 
       - name: Set AKS context
         uses: azure/aks-set-context@v3
