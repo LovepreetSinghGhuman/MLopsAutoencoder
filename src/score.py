@@ -128,7 +128,7 @@ feature_columns = None
 threshold = None
 config = None
 
-# Models directory in the container
+# models directory in the container
 MODELS_DIR = "models"  # we’ll COPY your `models/` folder into `/app/models` in Docker
 
 @app.on_event("startup")

@@ -64,9 +64,9 @@ class Config:
 
     # Directory paths
     BASE_DIR = Path(".")
-    DATA_DIR_PROCESS = BASE_DIR / "Data" / "Processed"
+    DATA_DIR_PROCESS = BASE_DIR / "Data" / "processed"
     RESULTS_DIR = BASE_DIR / "Results"
-    MODEL_DIR = BASE_DIR / "Models"
+    MODEL_DIR = BASE_DIR / "models"
 
     # Model and config file paths
     MODEL_PATH = MODEL_DIR / "best_autoencoder.keras"
@@ -792,8 +792,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, default="Data/Processed")
-    parser.add_argument("--model_dir", type=str, default="Models")
+    parser.add_argument("--data_dir", type=str, default="Data/processed")
+    parser.add_argument("--model_dir", type=str, default="models")
     parser.add_argument("--results_dir", type=str, default="Results")
     parser.add_argument("--epochs", type=int, default=150)
     parser.add_argument("--batch_size", type=int, default=256)
