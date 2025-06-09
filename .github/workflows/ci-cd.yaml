@@ -8,8 +8,6 @@ on:
 # -----------------------------------------------------------------------------
 # This workflow builds, trains, and deploys a fraud detection model using Azure.
 #
-# - The Azure ML compute cluster for training is called 'mycpucluster'.
-# - The AKS cluster for deployment is called 'fraudAKSCluster'.
 # - The training job is submitted to Azure ML using deployment/train-job.yaml,
 #   which must specify 'compute: azureml:mycpucluster'.
 # - The AKS cluster is used for serving the model after deployment.
