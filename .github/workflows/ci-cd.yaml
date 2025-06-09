@@ -16,7 +16,7 @@ env:
   DEPLOYMENT_NAME: fraud-detector-deployment
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
-  AML_TRAIN_DATA_ASSET: fraud-train-data:1
+  AML_TRAIN_DATA_ASSET: cleaned_train:1
 
 jobs:
   setup:
