@@ -2,9 +2,10 @@ command: >-
   python src/train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}}
 inputs:
   train_data:
+    type: uri_file
 outputs:
   model_dir:
 compute: azureml:mycpucluster
 environment:
-  conda_file: deployment/conda.yaml
+  conda_file: conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
