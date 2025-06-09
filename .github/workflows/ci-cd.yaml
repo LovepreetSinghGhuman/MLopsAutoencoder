@@ -45,7 +45,14 @@ jobs:
       - name: Wait for Azure ML job to complete
         run: |
           cd $GITHUB_WORKSPACE
-          az ml job wait --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
+          while true; do
+            STATUS=$(az ml job show --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --query status -o tsv)
+            echo "Current job status: $STATUS"
+            if [[ "$STATUS" == "Completed" || "$STATUS" == "Failed" || "$STATUS" == "Canceled" ]]; then
+              break
+            fi
+            sleep 30
+          done
 
       - name: Download model artifacts from Azure ML job outputs
         run: |
