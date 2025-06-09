@@ -16,6 +16,7 @@ env:
   DEPLOYMENT_NAME: fraud-detector-deployment
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
+  AML_TRAIN_DATA_ASSET: fraud-train-data:1  # <-- Parameterized data asset
 
 jobs:
   build-and-push:
@@ -31,6 +32,7 @@ jobs:
 
       - name: Install Azure CLI and ML extension
         run: |
+          set -e
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az version
           az extension add -n ml -y
@@ -38,17 +40,19 @@ jobs:
       - name: Submit Azure ML training job
         id: submit_job
         run: |
+          set -e
           cd $GITHUB_WORKSPACE
           JOB_NAME=$(az ml job create \
-          --file deployment/train-job.yaml \
-          --resource-group $RESOURCE_GROUP \
-          --workspace-name $AML_WORKSPACE \
-          --inputs train_data=azureml:fraud-train-data:1 \
-          --query name -o tsv)
+            --file deployment/train-job.yaml \
+            --resource-group $RESOURCE_GROUP \
+            --workspace-name $AML_WORKSPACE \
+            --inputs train_data=azureml:${{ env.AML_TRAIN_DATA_ASSET }} \
+            --query name -o tsv)
           echo "job_name=$JOB_NAME" >> $GITHUB_OUTPUT
 
       - name: Wait for Azure ML job to complete
         run: |
+          set -e
           cd $GITHUB_WORKSPACE
           while true; do
             STATUS=$(az ml job show --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --query status -o tsv)
@@ -61,6 +65,7 @@ jobs:
 
       - name: Download model artifacts from Azure ML job outputs
         run: |
+          set -e
           cd $GITHUB_WORKSPACE
           az ml job download --name ${{ steps.submit_job.outputs.job_name }} --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --output ./models --overwrite
 
