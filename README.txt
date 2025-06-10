@@ -138,5 +138,5 @@ This project demonstrates a full MLOps workflow for fraud detection using an aut
 ---
 
 **Authors**:  
-[Your Name(s)]  
-[Course/Group Info]
+Lovepreet Singh
+MLOps and AI design patterns
