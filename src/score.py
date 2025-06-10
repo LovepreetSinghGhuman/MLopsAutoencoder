@@ -11,6 +11,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
+import glob
 
 # --- Preprocessing function (must match training pipeline exactly) ---
 def preprocess_data(
@@ -131,38 +132,61 @@ config = None
 # models directory in the container
 MODELS_DIR = "models"  # we’ll COPY your `models/` folder into `/app/models` in Docker
 
+def find_model_output_dir():
+    """
+    Find the actual output directory from Azure ML job download.
+    Returns the path to the directory containing the model files.
+    """
+    # Look for models/outputs/* (Azure ML job output)
+    outputs_dirs = glob.glob(os.path.join(MODELS_DIR, "outputs", "*"))
+    if outputs_dirs:
+        return outputs_dirs[0]
+    # Fallback: models/outputs/
+    if os.path.isdir(os.path.join(MODELS_DIR, "outputs")):
+        return os.path.join(MODELS_DIR, "outputs")
+    # Fallback: models/
+    return MODELS_DIR
+
 @app.on_event("startup")
 def load_model():
     global model, scaler, feature_columns, threshold, config
 
+    model_dir = find_model_output_dir()
+
     # 1. Load Keras autoencoder
-    model_path = os.path.join(MODELS_DIR, "best_autoencoder.keras")
+    model_path = os.path.join(model_dir, "best_autoencoder.keras")
     try:
         model = tf.keras.models.load_model(model_path)
     except Exception as e:
         raise RuntimeError(f"Failed to load model: {str(e)}")
 
     # 2. Load scaler
-    scaler_path = os.path.join(MODELS_DIR, "scaler.joblib")
+    scaler_path = os.path.join(model_dir, "scaler.joblib")
     try:
         scaler = joblib.load(scaler_path)
     except Exception as e:
         raise RuntimeError(f"Failed to load scaler: {str(e)}")
 
     # 3. Load config (feature_columns, version, etc.)
-    config_path = os.path.join(MODELS_DIR, "autoencoder_config.json")
-    with open(config_path, "r") as f:
-        config = json.load(f)
+    config_path = os.path.join(model_dir, "autoencoder_config.json")
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load config: {str(e)}")
 
     feature_columns = config.get("feature_columns")
     if feature_columns is None:
         raise RuntimeError("feature_columns not found in config")
 
     # 4. Load threshold
-    threshold_path = os.path.join(MODELS_DIR, "best_threshold.json")
-    with open(threshold_path, "r") as f:
-        threshold_data = json.load(f)
-    threshold = threshold_data.get("threshold", None)
+    threshold_path = os.path.join(model_dir, "best_threshold.json")
+    try:
+        with open(threshold_path, "r") as f:
+            threshold_data = json.load(f)
+        threshold = threshold_data.get("threshold", None)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load threshold: {str(e)}")
     if threshold is None:
         raise RuntimeError("Threshold not found in best_threshold.json")
 

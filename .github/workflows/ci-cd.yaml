@@ -28,7 +28,7 @@ env:
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
   # Azure ML dataset asset for training
-  AML_TRAIN_DATA_ASSET: cleaned_train:1
+  AML_TRAIN_DATA_ASSET: cleaned_train:2
 
 jobs:
   build-and-train:
