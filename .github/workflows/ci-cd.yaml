@@ -97,6 +97,10 @@ jobs:
           JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
           az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --download-path ./models
 
+      - name: Register new model version in Azure ML
+        run: |
+          az ml model create --name fraud_detector_autoencoder --path ./models --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
+
   deploy:
     needs: build-and-train
     runs-on: ubuntu-latest
