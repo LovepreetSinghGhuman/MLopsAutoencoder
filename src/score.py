@@ -150,9 +150,12 @@ def find_model_output_dir():
 @app.on_event("startup")
 def load_model():
     global model, scaler, feature_columns, threshold, config
-
+    
+    # Find the model output directory Debugging
     model_dir = find_model_output_dir()
-
+    print("Model directory used:", model_dir)
+    print("Files in model_dir:", os.listdir(model_dir))
+    
     # 1. Load Keras autoencoder
     model_path = os.path.join(model_dir, "best_autoencoder.keras")
     try:
