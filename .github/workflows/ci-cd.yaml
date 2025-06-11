@@ -64,7 +64,7 @@ env:
   RESOURCE_GROUP: fraud-rg
   AML_WORKSPACE: fraud-workspace
   CLUSTER_NAME: fraudAKSCluster
-  DEPLOYMENT_NAME: fraud-detector-deployment
+  DEPLOYMENT_NAME: fraud-backend
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
   AML_TRAIN_DATA_ASSET: cleaned_train:2
@@ -190,11 +190,10 @@ jobs:
           cluster-name: ${{ env.CLUSTER_NAME }}
           resource-group: ${{ env.RESOURCE_GROUP }}
 
+      - name: Apply all Kubernetes manifests
+        run: ./apply_all_k8s.sh
+
       - name: Update Kubernetes deployment image
         run: |
           IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
           kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_TAG --namespace $NAMESPACE
-
-      - name: Apply all Kubernetes manifests
-        run: |
-          ./apply_all_k8s.sh
