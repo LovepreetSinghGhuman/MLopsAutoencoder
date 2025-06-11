@@ -153,6 +153,8 @@ def main(args):
     with open(os.path.join(args.output_dir, "threshold.json"), "w", encoding="utf-8") as f:
         json.dump({"threshold": threshold}, f, ensure_ascii=False)
     print(f"Training complete. Artifacts saved to {args.output_dir}")
+    print("Output dir is:", args.output_dir)
+    print("Saving model to:", os.path.join(args.output_dir, "autoencoder.keras"))
 
 # ----------------- CLI -----------------
 if __name__ == "__main__":
