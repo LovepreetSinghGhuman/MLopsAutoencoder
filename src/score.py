@@ -183,7 +183,7 @@ def load_model():
         raise RuntimeError("feature_columns not found in config")
 
     # 4. Load threshold
-    threshold_path = os.path.join(model_dir, "best_threshold.json")
+    threshold_path = os.path.join(model_dir, "threshold.json")
     try:
         with open(threshold_path, "r") as f:
             threshold_data = json.load(f)
@@ -191,7 +191,7 @@ def load_model():
     except Exception as e:
         raise RuntimeError(f"Failed to load threshold: {str(e)}")
     if threshold is None:
-        raise RuntimeError("Threshold not found in best_threshold.json")
+        raise RuntimeError("Threshold not found in threshold.json")
 
 
 class PredictionResult(BaseModel):
