@@ -194,3 +194,7 @@ jobs:
         run: |
           IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
           kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_TAG --namespace $NAMESPACE
+
+      - name: Apply all Kubernetes manifests
+        run: |
+          ./apply_all_k8s.sh
