@@ -1,7 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
-code: ../src
+code: ..
 command: >-
-  python src/train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}} || echo "Training job failed due to encoding issues."
+  python src/train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}}
 inputs:
   train_data:
     type: uri_file
