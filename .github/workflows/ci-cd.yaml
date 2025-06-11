@@ -258,5 +258,9 @@ jobs:
 
       - name: Update frontend deployment image
         run: |
+          if [ -z "${{ needs.build-and-push-frontend.outputs.frontend_image }}" ]; then
+            echo "ERROR: Frontend image output is empty!"
+            exit 1
+          fi
           kubectl set image deployment/frontend nginx=${{ needs.build-and-push-frontend.outputs.frontend_image }} --namespace $NAMESPACE
         shell: bash
