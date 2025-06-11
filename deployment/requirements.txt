@@ -1,5 +1,5 @@
 # coding: utf-8
-# ü
+# Ã¼
 numpy==1.26.4
 pandas==2.2.3
 scikit-learn==1.3.2
