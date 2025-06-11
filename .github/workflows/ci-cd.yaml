@@ -56,20 +56,6 @@ jobs:
           find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) | \
             xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || (echo "Non-UTF-8 encoding detected in: {}" && exit 1)'
 
-      - name: Build Docker image for Autoencoder
-        run: |
-          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
-          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      - name: Docker login to ACR
-        run: |
-          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
-
-      - name: Push Docker image
-        run: |
-          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
-
       - name: Submit Azure ML training job and wait for completion
         id: submit_job
         run: |
@@ -100,6 +86,20 @@ jobs:
       - name: Register new model version in Azure ML
         run: |
           az ml model create --name fraud_detector_autoencoder --path ./models --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
+
+      - name: Build Docker image for Autoencoder
+        run: |
+          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
+          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Docker login to ACR
+        run: |
+          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
+
+      - name: Push Docker image
+        run: |
+          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
 
   deploy:
     needs: build-and-train
