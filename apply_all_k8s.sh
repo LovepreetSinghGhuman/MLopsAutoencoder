@@ -1,18 +1,11 @@
 #!/bin/bash
 set -e
 
-# Apply backend manifests
-kubectl apply -f deployment/k8s/deployment.yaml
-kubectl apply -f deployment/k8s/service.yaml
-kubectl apply -f deployment/k8s/ingress.yaml
+# Apply all YAML manifests in the deployment/k8s and frontend directories
+find deployment/k8s -name '*.yaml' -exec kubectl apply -f {} \;
 
-# Apply frontend manifests if they exist
-if [ -f frontend/frontend-nginx-deployment.yaml ]; then
-  kubectl apply -f frontend/frontend-nginx-deployment.yaml
-fi
-
-if [ -f frontend/frontend-nginx-service.yaml ]; then
-  kubectl apply -f frontend/frontend-nginx-service.yaml
+if [ -d frontend ]; then
+  find frontend -name '*.yaml' -exec kubectl apply -f {} \;
 fi
 
 echo "✅ All Kubernetes manifests applied."

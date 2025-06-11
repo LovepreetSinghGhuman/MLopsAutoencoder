@@ -190,7 +190,7 @@ jobs:
           FRONTEND_IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
           docker build -t $FRONTEND_IMAGE -f frontend/Dockerfile frontend
           docker push $FRONTEND_IMAGE
-          echo "frontend_image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+          echo "frontend_image=${FRONTEND_IMAGE}" >> $GITHUB_OUTPUT
         shell: bash
 
   deploy:
