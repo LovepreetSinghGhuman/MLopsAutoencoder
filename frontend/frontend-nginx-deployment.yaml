@@ -14,13 +14,10 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginx:alpine
+          image: fraudacr12345.azurecr.io/frontend:latest   # Use your pushed image
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
-          volumeMounts:
-            - name: frontend-files
-              mountPath: /usr/share/nginx/html
           resources:
             requests:
               cpu: "50m"
@@ -28,8 +25,3 @@ spec:
             limits:
               cpu: "200m"
               memory: "128Mi"
-      volumes:
-        - name: frontend-files
-          hostPath:
-            path: frontend
-            type: Directory

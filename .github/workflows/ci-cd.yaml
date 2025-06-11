@@ -166,8 +166,30 @@ jobs:
           docker push $IMAGE_TAG
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+
+      - name: Build and push frontend Docker image
+        run: |
+          FRONTEND_IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          docker build -t $FRONTEND_IMAGE -f frontend/Dockerfile frontend
+          docker push $FRONTEND_IMAGE
+          echo "FRONTEND_IMAGE=$FRONTEND_IMAGE" >> $GITHUB_ENV
+
   deploy:
-    needs: build-and-train
+    needs: [build-and-train, build-and-push-frontend]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -196,7 +218,11 @@ jobs:
       - name: Apply all Kubernetes manifests
         run: ./apply_all_k8s.sh
 
-      - name: Update Kubernetes deployment image
+      - name: Update backend deployment image
         run: |
           IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
           kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_TAG --namespace $NAMESPACE
+
+      - name: Update frontend deployment image
+        run: |
+          kubectl set image deployment/frontend nginx=$FRONTEND_IMAGE --namespace $NAMESPACE
