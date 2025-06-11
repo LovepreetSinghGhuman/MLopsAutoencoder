@@ -5,15 +5,50 @@ on:
     branches:
       - main
 
-# -----------------------------------------------------------------------------
-# This workflow builds, trains, and deploys a fraud detection model using Azure.
+# =============================================================================
+# CI/CD Workflow for Fraud Detection Autoencoder (Azure ML & AKS)
 #
-# - The training job is submitted to Azure ML using deployment/train-job.yaml,
-#   which must specify 'compute: azureml:mycpucluster'.
-# - The AKS cluster is used for serving the model after deployment.
-# - Docker images are built and pushed to Azure Container Registry (ACR).
-# - Before building the Docker image, we check that all relevant files are UTF-8 encoded.
-# -----------------------------------------------------------------------------
+# Overview:
+#   This workflow automates the end-to-end process of building, training,
+#   registering, containerizing, and deploying a fraud detection model using
+#   Azure Machine Learning and Azure Kubernetes Service (AKS).
+#
+# Workflow Stages:
+#   1. **Build & Train**:
+#      - Checks out the repository code.
+#      - Authenticates with Azure using GitHub secrets.
+#      - Installs Azure CLI and ML extension for job management.
+#      - Ensures all relevant files are UTF-8 encoded for compatibility.
+#      - Submits a training job to Azure ML (using deployment/train-job.yaml).
+#      - Waits for training completion and downloads model artifacts.
+#      - Registers the trained model in Azure ML for versioning and tracking.
+#      - Builds a Docker image for the trained model and pushes it to Azure Container Registry (ACR).
+#
+#   2. **Deploy**:
+#      - Authenticates with Azure and sets AKS context.
+#      - Builds and pushes a deployment Docker image (tagged as 'latest') to ACR.
+#      - Updates the AKS deployment to use the new image, rolling out the new model version.
+#
+# Key Azure Resources:
+#   - Azure ML Workspace: Manages experiments, jobs, and model registry.
+#   - Azure Container Registry (ACR): Stores Docker images for model serving.
+#   - Azure Kubernetes Service (AKS): Hosts the deployed model as a web service.
+#
+# Security & Best Practices:
+#   - All Azure credentials and secrets are securely stored in GitHub Actions secrets.
+#   - UTF-8 encoding is enforced to prevent runtime errors due to incompatible file encodings.
+#   - Model versioning is handled via Azure ML's model registry.
+#
+# Customization:
+#   - Update resource names, cluster names, and dataset assets as needed.
+#   - The training job specification is defined in deployment/train-job.yaml.
+#   - The Dockerfile for model serving is located at deployment/Dockerfile.
+#
+# Troubleshooting:
+#   - If the workflow fails at encoding checks, ensure all source and data files are UTF-8.
+#   - Azure CLI and ML extension installation steps are idempotent and safe to rerun.
+#   - For deployment issues, check AKS logs and image tags.
+# =============================================================================
 
 env:
   ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
