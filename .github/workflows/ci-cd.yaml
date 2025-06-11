@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-
 # =============================================================================
 # CI/CD Workflow for Fraud Detection Autoencoder (Azure ML & AKS)
 #
@@ -88,6 +87,7 @@ jobs:
           az version
           az extension add -n ml -y --upgrade
 
+      # Ensure all files are UTF-8 encoded (check, convert if needed, verify)
       - name: Ensure all files are UTF-8 encoded (check, convert if needed, verify)
         run: |
           echo "Checking encoding for requirements.txt, Python, and CSV files..."
@@ -109,6 +109,7 @@ jobs:
             echo "All files are UTF-8 encoded."
           fi
 
+      # Submit Azure ML training job and wait for completion
       - name: Submit Azure ML training job and wait for completion
         id: submit_job
         run: |
@@ -128,6 +129,7 @@ jobs:
             sleep 30
           done
 
+      # Download, flatten, and verify model artifacts
       - name: Download, flatten, and verify model artifacts
         run: |
           set -e
@@ -154,10 +156,12 @@ jobs:
           echo "✅ All required model artifacts are present."
           ls -lR ./models
 
+      # Register new model version in Azure ML
       - name: Register new model version in Azure ML
         run: |
           az ml model create --name fraud_detector_autoencoder --path ./models --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
 
+      # Build and push Docker image for Autoencoder
       - name: Build and push Docker image for Autoencoder
         run: |
           IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
@@ -184,6 +188,7 @@ jobs:
           echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
         shell: bash
 
+      # Build and push frontend Docker image and set output
       - name: Build and push frontend Docker image
         id: build_push
         run: |
@@ -226,12 +231,14 @@ jobs:
         run: ./apply_all_k8s.sh
         shell: bash
 
+      # Update backend deployment image
       - name: Update backend deployment image
         run: |
           IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
           kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_TAG --namespace $NAMESPACE
         shell: bash
 
+      # Update frontend deployment image using output from build-and-push-frontend
       - name: Update frontend deployment image
         run: |
           kubectl set image deployment/frontend nginx=${{ needs.build-and-push-frontend.outputs.frontend_image }} --namespace $NAMESPACE
