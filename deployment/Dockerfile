@@ -22,9 +22,13 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     rm -rf /root/.cache/pip
 
-# Copy source code and models (after dependencies for better layer caching)
+# Copy source code
 COPY src/ ./src/
+
+# Ensure models directory exists (even if empty)
 RUN mkdir -p models
+
+# Only copy models if the directory exists (ignore if missing)
 COPY models/ ./models/
 
 # (Optional) Use a non-root user for security
