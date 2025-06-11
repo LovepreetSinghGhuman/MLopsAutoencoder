@@ -130,34 +130,39 @@ threshold = None
 config = None
 
 # models directory in the container
-MODELS_DIR = "models"  # we’ll COPY your `models/` folder into `/app/models` in Docker
+MODELS_DIR = "models"
 
 def find_model_output_dir():
     """
-    Find the actual output directory from Azure ML job download.
-    Returns the path to the directory containing the model files.
+    Find the directory containing the model files.
+    Checks for models/model_dir/, models/outputs/, then models/.
     """
-    # Look for models/outputs/* (Azure ML job output)
-    outputs_dirs = glob.glob(os.path.join(MODELS_DIR, "outputs", "*"))
-    if outputs_dirs:
-        return outputs_dirs[0]
-    # Fallback: models/outputs/
-    if os.path.isdir(os.path.join(MODELS_DIR, "outputs")):
-        return os.path.join(MODELS_DIR, "outputs")
-    # Fallback: models/
+    candidates = [
+        os.path.join(MODELS_DIR, "model_dir"),
+        os.path.join(MODELS_DIR, "outputs"),
+        MODELS_DIR
+    ]
+    for d in candidates:
+        if os.path.isdir(d) and any(os.path.isfile(os.path.join(d, f)) for f in ["autoencoder.keras", "scaler.joblib", "autoencoder_config.json", "threshold.json"]):
+            return d
+    # Fallback: just return models/
     return MODELS_DIR
 
 @app.on_event("startup")
 def load_model():
     global model, scaler, feature_columns, threshold, config
-    
-    # Find the model output directory Debugging
+
     model_dir = find_model_output_dir()
     print("Model directory used:", model_dir)
     print("Files in model_dir:", os.listdir(model_dir))
-    
+
     # 1. Load Keras autoencoder
     model_path = os.path.join(model_dir, "autoencoder.keras")
+    if not os.path.exists(model_path):
+        raise RuntimeError(
+            f"Model file not found at '{model_path}'. "
+            "Make sure the model artifact is present in the Docker image or mounted volume."
+        )
     try:
         model = tf.keras.models.load_model(model_path)
     except Exception as e:
@@ -165,6 +170,11 @@ def load_model():
 
     # 2. Load scaler
     scaler_path = os.path.join(model_dir, "scaler.joblib")
+    if not os.path.exists(scaler_path):
+        raise RuntimeError(
+            f"Scaler file not found at '{scaler_path}'. "
+            "Ensure the scaler artifact is present."
+        )
     try:
         scaler = joblib.load(scaler_path)
     except Exception as e:
@@ -172,6 +182,11 @@ def load_model():
 
     # 3. Load config (feature_columns, version, etc.)
     config_path = os.path.join(model_dir, "autoencoder_config.json")
+    if not os.path.exists(config_path):
+        raise RuntimeError(
+            f"Config file not found at '{config_path}'. "
+            "Ensure the config artifact is present."
+        )
     try:
         with open(config_path, "r") as f:
             config = json.load(f)
@@ -184,6 +199,11 @@ def load_model():
 
     # 4. Load threshold
     threshold_path = os.path.join(model_dir, "threshold.json")
+    if not os.path.exists(threshold_path):
+        raise RuntimeError(
+            f"Threshold file not found at '{threshold_path}'. "
+            "Ensure the threshold artifact is present."
+        )
     try:
         with open(threshold_path, "r") as f:
             threshold_data = json.load(f)

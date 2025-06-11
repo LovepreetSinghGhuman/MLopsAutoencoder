@@ -132,7 +132,9 @@ jobs:
           done
 
       - name: Clean models directory before download
-        run: rm -rf ./models/*
+        run: |
+          rm -rf ./models
+          mkdir -p ./models
 
       - name: Download model artifacts from Azure ML job outputs
         run: |
@@ -151,6 +153,22 @@ jobs:
             cp -r ./models/outputs/* ./models/
           fi
 
+      - name: Check for required model artifacts
+        run: |
+          set -e
+          REQUIRED_FILES="autoencoder.keras scaler.joblib autoencoder_config.json threshold.json"
+          for f in $REQUIRED_FILES; do
+            if [ ! -f "./models/$f" ]; then
+              echo "ERROR: Required model artifact ./models/$f not found!"
+              ls -lR ./models
+              exit 1
+            fi
+          done
+          echo "All required model artifacts are present."
+
+      - name: List models directory contents
+        run: ls -lR ./models
+
       - name: Register new model version in Azure ML
         run: |
           az ml model create --name fraud_detector_autoencoder --path ./models --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
@@ -168,9 +186,6 @@ jobs:
       - name: Push Docker image
         run: |
           docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
-
-      - name: List models directory contents
-        run: ls -lR ./models
 
   deploy:
     needs: build-and-train

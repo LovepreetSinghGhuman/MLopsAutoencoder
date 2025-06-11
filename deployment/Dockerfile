@@ -25,6 +25,9 @@ RUN pip install --upgrade pip && \
 # Copy source code
 COPY src/ ./src/
 
+# Copy model artifacts (ensure models/ exists and is populated before build)
+COPY models/ ./models/
+
 # Ensure models directory exists (even if empty)
 RUN mkdir -p models
 

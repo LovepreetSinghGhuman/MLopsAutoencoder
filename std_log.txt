@@ -1,49 +1,0 @@
-/bin/bash: /azureml-envs/azureml_0063dd15155576c61d88501f1feef529/lib/libtinfo.so.6: no version information available (required by /bin/bash)
-2025-06-11 02:48:14.514001: I external/local_tsl/tsl/cuda/cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
-2025-06-11 02:48:14.555647: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2025-06-11 02:48:14.555706: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2025-06-11 02:48:14.556974: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2025-06-11 02:48:14.564157: I external/local_tsl/tsl/cuda/cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
-2025-06-11 02:48:14.564380: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2025-06-11 02:48:15.360807: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
-2025-06-11 02:48:38.042255: W external/local_tsl/tsl/framework/cpu_allocator_impl.cc:83] Allocation of 361074384 exceeds 10% of free system memory.
-2025-06-11 02:48:38.550271: W external/local_tsl/tsl/framework/cpu_allocator_impl.cc:83] Allocation of 361074384 exceeds 10% of free system memory.
-Epoch 1/50
-1781/1781 - 25s - loss: 0.8329 - val_loss: 1.0445 - lr: 1.0000e-04 - 25s/epoch - 14ms/step
-Epoch 2/50
-1781/1781 - 23s - loss: 0.6341 - val_loss: 1.3337 - lr: 1.0000e-04 - 23s/epoch - 13ms/step
-Epoch 3/50
-1781/1781 - 26s - loss: 0.5712 - val_loss: 1.2392 - lr: 1.0000e-04 - 26s/epoch - 14ms/step
-Epoch 4/50
-1781/1781 - 22s - loss: 0.5320 - val_loss: 1.1750 - lr: 1.0000e-04 - 22s/epoch - 12ms/step
-Epoch 5/50
-1781/1781 - 22s - loss: 0.5044 - val_loss: 0.9108 - lr: 1.0000e-04 - 22s/epoch - 13ms/step
-Epoch 6/50
-1781/1781 - 22s - loss: 0.4796 - val_loss: 1.2413 - lr: 1.0000e-04 - 22s/epoch - 12ms/step
-Epoch 7/50
-1781/1781 - 23s - loss: 0.4612 - val_loss: 0.8896 - lr: 1.0000e-04 - 23s/epoch - 13ms/step
-Epoch 8/50
-1781/1781 - 24s - loss: 0.4464 - val_loss: 0.6028 - lr: 1.0000e-04 - 24s/epoch - 14ms/step
-Epoch 9/50
-1781/1781 - 23s - loss: 0.4301 - val_loss: 1.1394 - lr: 1.0000e-04 - 23s/epoch - 13ms/step
-Epoch 10/50
-1781/1781 - 25s - loss: 0.4191 - val_loss: 1.0130 - lr: 1.0000e-04 - 25s/epoch - 14ms/step
-Epoch 11/50
-1781/1781 - 25s - loss: 0.4083 - val_loss: 0.8727 - lr: 1.0000e-04 - 25s/epoch - 14ms/step
-Epoch 12/50
-1781/1781 - 25s - loss: 0.3996 - val_loss: 0.8019 - lr: 1.0000e-04 - 25s/epoch - 14ms/step
-Epoch 13/50
-1781/1781 - 23s - loss: 0.3929 - val_loss: 0.7835 - lr: 1.0000e-04 - 23s/epoch - 13ms/step
-Epoch 14/50
-1781/1781 - 24s - loss: 0.3828 - val_loss: 0.9674 - lr: 5.0000e-05 - 24s/epoch - 13ms/step
-Epoch 15/50
-1781/1781 - 24s - loss: 0.3769 - val_loss: 0.6313 - lr: 5.0000e-05 - 24s/epoch - 14ms/step
-Epoch 16/50
-1781/1781 - 25s - loss: 0.3713 - val_loss: 0.7218 - lr: 5.0000e-05 - 25s/epoch - 14ms/step
-Epoch 17/50
-1781/1781 - 25s - loss: 0.3628 - val_loss: 0.8495 - lr: 5.0000e-05 - 25s/epoch - 14ms/step
-Epoch 18/50
-1781/1781 - 26s - loss: 0.3605 - val_loss: 0.6487 - lr: 5.0000e-05 - 26s/epoch - 14ms/step
-  1/462 [..............................] - ETA: 58s 16/462 [>.............................] - ETA: 1s  30/462 [>.............................] - ETA: 1s 45/462 [=>............................] - ETA: 1s 61/462 [==>...........................] - ETA: 1s 77/462 [====>.........................] - ETA: 1s 93/462 [=====>........................] - ETA: 1s109/462 [======>.......................] - ETA: 1s124/462 [=======>......................] - ETA: 1s140/462 [========>.....................] - ETA: 1s155/462 [=========>....................] - ETA: 1s169/462 [=========>....................] - ETA: 0s182/462 [==========>...................] - ETA: 0s197/462 [===========>..................] - ETA: 0s213/462 [============>.................] - ETA: 0s230/462 [=============>................] - ETA: 0s246/462 [==============>...............] - ETA: 0s263/462 [================>.............] - ETA: 0s280/462 [=================>............] - ETA: 0s297/462 [==================>...........] - ETA: 0s313/462 [===================>..........] - ETA: 0s328/462 [====================>.........] - ETA: 0s344/462 [=====================>........] - ETA: 0s360/462 [======================>.......] - ETA: 0s376/462 [=======================>......] - ETA: 0s391/462 [========================>.....] - ETA: 0s407/462 [=========================>....] - ETA: 0s422/462 [==========================>...] - ETA: 0s437/462 [===========================>..] - ETA: 0s452/462 [============================>.] - ETA: 0s462/462 [==============================] - 2s 3ms/step
-Training complete. Artifacts saved to /mnt/azureml/cr/j/d282ca844d07479f8f093ef80fa1a769/cap/data-capability/wd/model_dir
