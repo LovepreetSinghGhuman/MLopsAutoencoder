@@ -1,57 +1,35 @@
-# frontend-nginx-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend-nginx
+  name: frontend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: frontend-nginx
+      app: frontend
   template:
     metadata:
       labels:
-        app: frontend-nginx
+        app: frontend
     spec:
-      volumes:
-        - name: static-files
-          configMap:
-            name: frontend-html
-        - name: html-dir
-          emptyDir: {}
-      initContainers:
-        - name: copy-static
-          image: busybox
-          command: ['sh', '-c', 'cp -L /configmap/* /html/']
-          volumeMounts:
-            - name: static-files
-              mountPath: /configmap
-            - name: html-dir
-              mountPath: /html
       containers:
         - name: nginx
-          image: nginx:1.21
+          image: nginx:alpine
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
           volumeMounts:
-            - name: html-dir
+            - name: frontend-files
               mountPath: /usr/share/nginx/html
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "50m"
+              memory: "64Mi"
             limits:
-              cpu: "250m"
-              memory: "256Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-nginx
-spec:
-  selector:
-    app: frontend-nginx
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
+              cpu: "200m"
+              memory: "128Mi"
+      volumes:
+        - name: frontend-files
+          hostPath:
+            path: frontend
+            type: Directory

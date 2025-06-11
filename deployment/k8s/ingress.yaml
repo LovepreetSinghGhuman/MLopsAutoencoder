@@ -1,7 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fraud-detector-ingress
+  name: fraud-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
   rules:
     - http:
@@ -10,13 +12,13 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: fraud-detector-service
+                name: fraud-backend
                 port:
-                  number: 80
+                  number: 8000
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: frontend-nginx
+                name: frontend
                 port:
                   number: 80

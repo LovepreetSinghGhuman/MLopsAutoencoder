@@ -1,31 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fraud-detector-deployment
-  labels:
-    app: fraud-detector
+  name: fraud-backend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: fraud-detector
+      app: fraud-backend
   template:
     metadata:
       labels:
-        app: fraud-detector
+        app: fraud-backend
     spec:
       containers:
-        - name: fraud-detector
+        - name: backend
           image: fraudacr12345.azurecr.io/fraud-detector:autoencoder
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
+          env:
+            - name: MODELS_DIR
+              value: /app/models
           resources:
             requests:
-              cpu: "250m"
-              memory: "512Mi"
+              cpu: "100m"
+              memory: "128Mi"
             limits:
               cpu: "500m"
-              memory: "1Gi"
-      imagePullSecrets:
-        - name: acr-secret
+              memory: "512Mi"
