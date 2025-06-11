@@ -173,7 +173,7 @@ jobs:
   build-and-push-frontend:
     runs-on: ubuntu-latest
     outputs:
-      frontend_image: ${{ steps.build_push.outputs.frontend_image }}
+      frontend_image_tag: ${{ steps.build_push.outputs.frontend_image_tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -188,14 +188,14 @@ jobs:
           echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
         shell: bash
 
-      # Build and push frontend Docker image and set output
       - name: Build and push frontend Docker image
         id: build_push
         run: |
-          FRONTEND_IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
-          docker build -t $FRONTEND_IMAGE -f frontend/Dockerfile frontend
-          docker push $FRONTEND_IMAGE
-          echo "frontend_image=${FRONTEND_IMAGE}" >> $GITHUB_OUTPUT
+          IMAGE_TAG=frontend:latest
+          FULL_IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG
+          docker build -t $FULL_IMAGE -f frontend/Dockerfile frontend
+          docker push $FULL_IMAGE
+          echo "frontend_image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
         shell: bash
 
       # Debug: Show the output variable from the step
@@ -258,9 +258,10 @@ jobs:
 
       - name: Update frontend deployment image
         run: |
-          if [ -z "${{ needs.build-and-push-frontend.outputs.frontend_image }}" ]; then
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ needs.build-and-push-frontend.outputs.frontend_image_tag }}
+          if [ -z "$IMAGE_TAG" ]; then
             echo "ERROR: Frontend image output is empty!"
             exit 1
           fi
-          kubectl set image deployment/frontend nginx=${{ needs.build-and-push-frontend.outputs.frontend_image }} --namespace $NAMESPACE
+          kubectl set image deployment/frontend nginx=$IMAGE_TAG --namespace $NAMESPACE
         shell: bash
