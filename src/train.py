@@ -140,7 +140,11 @@ def main(args):
     threshold = select_best_threshold(model, X_val_auto, y_val)
 
     # Save artifacts
+    print("Output dir (as received):", args.output_dir)
+    print("Output dir absolute path:", os.path.abspath(args.output_dir))
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    print("Directory exists?", os.path.exists(args.output_dir))
+    print("Directory contents before saving:", os.listdir(args.output_dir))
     model.save(os.path.join(args.output_dir, "autoencoder.keras"))
     with open(os.path.join(args.output_dir, "scaler.joblib"), "wb") as f:
         joblib.dump(scaler, f)
