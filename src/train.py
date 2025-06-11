@@ -20,14 +20,14 @@ from tensorflow.keras.regularizers import l2
 # ----------------- Config -----------------
 class Config:
     SEED = 42
-    EPOCHS = 50
+    EPOCHS = 5  # Reduced from 50 to 5 for faster CI
     BATCH_SIZE = 256
     VAL_SIZE = 0.2
     LEARNING_RATE = 1e-4
     THRESHOLD_RANGE = (0.9, 0.99)
     NUM_THRESHOLDS = 100
-    EARLY_STOPPING_PATIENCE = 10
-    REDUCE_LR_PATIENCE = 5
+    EARLY_STOPPING_PATIENCE = 3  # Also reduce patience for faster stopping
+    REDUCE_LR_PATIENCE = 2
     REDUCE_LR_FACTOR = 0.5
     MIN_LR = 1e-6
 

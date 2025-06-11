@@ -142,6 +142,11 @@ jobs:
 
       - name: Move model artifacts to ./models root
         run: |
+          # Copy from model_dir if it exists (Azure ML output)
+          if [ -d "./models/model_dir" ]; then
+            cp -r ./models/model_dir/* ./models/
+          fi
+          # Also support outputs/ for flexibility
           if [ -d "./models/outputs" ]; then
             cp -r ./models/outputs/* ./models/
           fi
