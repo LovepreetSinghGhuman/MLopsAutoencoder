@@ -190,6 +190,9 @@ jobs:
           cluster-name: ${{ env.CLUSTER_NAME }}
           resource-group: ${{ env.RESOURCE_GROUP }}
 
+      - name: Make apply_all_k8s.sh executable
+        run: chmod +x apply_all_k8s.sh
+
       - name: Apply all Kubernetes manifests
         run: ./apply_all_k8s.sh
 
