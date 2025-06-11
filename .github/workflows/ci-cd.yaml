@@ -121,21 +121,19 @@ jobs:
             sleep 30
           done
 
-      - name: Download, move, and check model artifacts
+      - name: Download, flatten, and verify model artifacts
         run: |
           set -e
           rm -rf ./models
           JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
-          az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --download-path ./models
-          # Move artifacts to ./models root
-          if [ -d "./models/model_dir" ]; then
-            mv ./models/model_dir/* ./models/
-            rmdir ./models/model_dir
-          fi
-          if [ -d "./models/outputs" ]; then
-            mv ./models/outputs/* ./models/
-            rmdir ./models/outputs
-          fi
+          az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --output-name model_dir --download-path ./models
+
+          # Flatten model directory structure
+          find ./models -type f -name 'autoencoder.keras' -exec cp {} ./models/ \;
+          find ./models -type f -name 'scaler.joblib' -exec cp {} ./models/ \;
+          find ./models -type f -name 'autoencoder_config.json' -exec cp {} ./models/ \;
+          find ./models -type f -name 'threshold.json' -exec cp {} ./models/ \;
+
           # Check for required artifacts
           REQUIRED_FILES="autoencoder.keras scaler.joblib autoencoder_config.json threshold.json"
           for f in $REQUIRED_FILES; do
@@ -145,7 +143,8 @@ jobs:
               exit 1
             fi
           done
-          echo "All required model artifacts are present."
+
+          echo "✅ All required model artifacts are present."
           ls -lR ./models
 
       - name: Register new model version in Azure ML
