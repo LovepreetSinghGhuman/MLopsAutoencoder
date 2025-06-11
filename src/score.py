@@ -229,7 +229,7 @@ class PredictionResult(BaseModel):
     isFraud: List[int]  # or float if you want probability
 
 @app.post("/predict", response_model=PredictionResult)
-def predict(file: UploadFile = File(...)):
+async def predict(file: UploadFile = File(...)):
     """
     Endpoint: Upload an Excel (.xlsx/.xls) or CSV (.csv) file
     with columns that match your training features (including TransactionID).
@@ -283,7 +283,7 @@ def predict(file: UploadFile = File(...)):
 # Optional: a health check endpoint
 @app.get("/health")
 def health():
-    return {"status": "Healthy"}
+    return {"status": "ok"}
 
 
 # Enable local debugging via `python score.py`

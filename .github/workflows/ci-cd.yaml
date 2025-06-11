@@ -8,19 +8,18 @@ on:
 # =============================================================================
 # CI/CD Workflow for Fraud Detection Autoencoder (Azure ML & AKS)
 #
-# Overview:
-#   This workflow automates the end-to-end process of building, training,
-#   registering, containerizing, and deploying a fraud detection model using
-#   Azure Machine Learning and Azure Kubernetes Service (AKS).
+# Purpose:
+#   Automates the end-to-end lifecycle of a fraud detection model using Azure ML and AKS.
 #
-# Workflow Stages:
+# Workflow Overview:
 #   1. **Build & Train**:
-#      - Checks out the repository code.
+#      - Checks out repository code.
 #      - Authenticates with Azure using GitHub secrets.
 #      - Installs Azure CLI and ML extension for job management.
 #      - Ensures all relevant files are UTF-8 encoded for compatibility.
 #      - Submits a training job to Azure ML (using deployment/train-job.yaml).
 #      - Waits for training completion and downloads model artifacts.
+#      - Flattens and verifies the model artifact directory structure.
 #      - Registers the trained model in Azure ML for versioning and tracking.
 #      - Builds a Docker image for the trained model and pushes it to Azure Container Registry (ACR).
 #
@@ -47,6 +46,14 @@ on:
 #   - If the workflow fails at encoding checks, ensure all source and data files are UTF-8.
 #   - Azure CLI and ML extension installation steps are idempotent and safe to rerun.
 #   - For deployment issues, check AKS logs and image tags.
+#
+# Stage Details:
+#   - **UTF-8 Check**: Ensures all Python, CSV, and requirements files are UTF-8 encoded.
+#   - **Training Job**: Submits and monitors an Azure ML job, waits for completion.
+#   - **Artifact Handling**: Downloads, flattens, and verifies required model artifacts.
+#   - **Model Registration**: Registers the new model version in Azure ML.
+#   - **Containerization**: Builds and pushes a Docker image for the trained model.
+#   - **Deployment**: Updates the AKS deployment to use the new Docker image.
 # =============================================================================
 
 env:
