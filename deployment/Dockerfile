@@ -24,6 +24,7 @@ RUN pip install --upgrade pip && \
 
 # Copy source code and models (after dependencies for better layer caching)
 COPY src/ ./src/
+RUN mkdir -p models
 COPY models/ ./models/
 
 # (Optional) Use a non-root user for security
