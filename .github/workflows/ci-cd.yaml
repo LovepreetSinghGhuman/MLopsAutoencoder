@@ -50,11 +50,17 @@ jobs:
           az extension add -n ml -y --upgrade
           az extension show -n ml
 
+      - name: Ensure models directory exists
+        run: mkdir -p models
+
       - name: Check file encoding (should be UTF-8)
         run: |
           echo "Checking encoding for requirements.txt, Python, and CSV files..."
-          find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) | \
+          find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
             xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || (echo "Non-UTF-8 encoding detected in: {}" && exit 1)'
+
+      - name: Convert files to UTF-8 if needed
+        run: python src/convert_to_utf8.py
 
       - name: Submit Azure ML training job and wait for completion
         id: submit_job

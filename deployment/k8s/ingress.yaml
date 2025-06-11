@@ -13,13 +13,13 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: fraud-detector-service  # your FastAPI backend
+                name: fraud-detector-service  # FastAPI backend
                 port:
                   number: 80
           - path: /(.*)
             pathType: Prefix
             backend:
               service:
-                name: frontend-nginx          # your static HTML service
+                name: frontend-nginx          # Static HTML service
                 port:
                   number: 80
