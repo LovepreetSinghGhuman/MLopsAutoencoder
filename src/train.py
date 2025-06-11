@@ -7,10 +7,10 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import joblib
-import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 # Use ONLY tf.keras imports below
+import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Dropout, BatchNormalization, LeakyReLU
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
@@ -124,7 +124,7 @@ def main(args):
     callbacks = [
         EarlyStopping(monitor="val_loss", patience=Config.EARLY_STOPPING_PATIENCE, restore_best_weights=True),
         ReduceLROnPlateau(monitor="val_loss", patience=Config.REDUCE_LR_PATIENCE, factor=Config.REDUCE_LR_FACTOR, min_lr=Config.MIN_LR),
-        ModelCheckpoint(filepath=os.path.join(args.output_dir, "best_autoencoder.keras"), monitor="val_loss", save_best_only=True)
+        ModelCheckpoint(filepath=os.path.join(args.output_dir, "autoencoder.keras"), monitor="val_loss", save_best_only=True)
     ]
     model.fit(
         X_train_auto, X_train_auto,
@@ -141,7 +141,7 @@ def main(args):
 
     # Save artifacts
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    model.save(os.path.join(args.output_dir, "best_autoencoder.keras"))
+    model.save(os.path.join(args.output_dir, "autoencoder.keras"))
     # joblib handles binary mode internally, but for explicitness:
     with open(os.path.join(args.output_dir, "scaler.joblib"), "wb") as f:
         joblib.dump(scaler, f)
@@ -150,7 +150,7 @@ def main(args):
             "input_dim": input_dim,
             "feature_columns": feature_columns
         }, f, ensure_ascii=False)
-    with open(os.path.join(args.output_dir, "best_threshold.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(args.output_dir, "threshold.json"), "w", encoding="utf-8") as f:
         json.dump({"threshold": threshold}, f, ensure_ascii=False)
     print(f"Training complete. Artifacts saved to {args.output_dir}")
 

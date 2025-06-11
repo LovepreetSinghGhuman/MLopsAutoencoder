@@ -157,7 +157,7 @@ def load_model():
     print("Files in model_dir:", os.listdir(model_dir))
     
     # 1. Load Keras autoencoder
-    model_path = os.path.join(model_dir, "best_autoencoder.keras")
+    model_path = os.path.join(model_dir, "autoencoder.keras")
     try:
         model = tf.keras.models.load_model(model_path)
     except Exception as e:
