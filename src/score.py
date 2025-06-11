@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from typing import List
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
@@ -120,6 +121,15 @@ app = FastAPI(
     title="Fraud Detector Autoencoder",
     description="Upload an Excel file; returns fraud predictions.",
     version="1.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Or specify your frontend domain for more security
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Globals to hold loaded model components
