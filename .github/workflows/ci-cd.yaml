@@ -53,19 +53,7 @@ jobs:
       - name: Ensure models directory exists
         run: mkdir -p models
 
-      - name: Check file encoding (should be UTF-8)
-        run: |
-          echo "Checking encoding for requirements.txt, Python, and CSV files..."
-          NON_UTF8=$(find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
-            xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || echo "{}"')
-          if [ -n "$NON_UTF8" ]; then
-            echo "WARNING: Non-UTF-8 encoding detected in:"
-            echo "$NON_UTF8"
-          else
-            echo "All files are UTF-8 encoded."
-          fi
-
-      - name: Ensure all files are UTF-8 encoded (check, convert, verify)
+      - name: Ensure all files are UTF-8 encoded (check, convert if needed, verify)
         run: |
           echo "Checking encoding for requirements.txt, Python, and CSV files..."
           NON_UTF8=$(find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
@@ -75,16 +63,16 @@ jobs:
             echo "$NON_UTF8"
             echo "Converting files to UTF-8..."
             python src/convert_to_utf8.py
+            # Re-check after conversion
+            NON_UTF8=$(find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
+              xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || echo "{}"')
+            if [ -n "$NON_UTF8" ]; then
+              echo "ERROR: The following files are still not UTF-8 encoded after conversion:"
+              echo "$NON_UTF8"
+              exit 1
+            fi
           else
             echo "All files are UTF-8 encoded."
-          fi
-          # Re-check after conversion
-          NON_UTF8=$(find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
-            xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || echo "{}"')
-          if [ -n "$NON_UTF8" ]; then
-            echo "ERROR: The following files are still not UTF-8 encoded after conversion:"
-            echo "$NON_UTF8"
-            exit 1
           fi
 
       - name: Submit Azure ML training job and wait for completion
@@ -108,11 +96,20 @@ jobs:
             sleep 30
           done
 
+      - name: Clean models directory before download
+        run: rm -rf ./models/*
+
       - name: Download model artifacts from Azure ML job outputs
         run: |
           set -e
           JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
           az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --download-path ./models
+
+      - name: Move model artifacts to ./models root
+        run: |
+          if [ -d "./models/outputs" ]; then
+            cp -r ./models/outputs/* ./models/
+          fi
 
       - name: Register new model version in Azure ML
         run: |
