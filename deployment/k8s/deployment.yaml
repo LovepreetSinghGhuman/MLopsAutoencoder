@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: fraud-detector
-          image: fraudacr12345.azurecr.io/fraud-detector:latest
+          image: fraudacr12345.azurecr.io/fraud-detector:autoencoder
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
