@@ -3,13 +3,20 @@ kind: Ingress
 metadata:
   name: fraud-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/proxy-body-size: "10000m"   # Allow up to 20MB uploads (adjust as needed)
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
           - path: /predict
+            pathType: Prefix
+            backend:
+              service:
+                name: fraud-backend
+                port:
+                  number: 8000
+          - path: /health
             pathType: Prefix
             backend:
               service:
