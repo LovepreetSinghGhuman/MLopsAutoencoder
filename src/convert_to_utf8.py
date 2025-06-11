@@ -5,7 +5,7 @@ def convert_to_utf8(filename):
     with open(filename, 'rb') as f:
         raw = f.read()
         detected = chardet.detect(raw)
-        encoding = detected['encoding']
+        encoding = detected.get('encoding')
 
     if encoding is None:
         print(f"Could not detect encoding for {filename}. Skipping.")
@@ -15,11 +15,19 @@ def convert_to_utf8(filename):
         print(f"{filename} is already UTF-8 encoded.")
         return
 
-    with open(filename, 'r', encoding=encoding, errors='replace') as f:
-        content = f.read()
-    with open(filename, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print(f"Converted {filename} from {encoding} to UTF-8.")
+    try:
+        with open(filename, 'r', encoding=encoding, errors='ignore') as f:
+            content = f.read()
+    except Exception as e:
+        print(f"Error reading {filename} with encoding {encoding}: {e}")
+        return
+
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Converted {filename} from {encoding} to UTF-8.")
+    except Exception as e:
+        print(f"Error writing UTF-8 content to {filename}: {e}")
 
 if __name__ == "__main__":
     # Dynamically find files to match the CI/CD workflow
@@ -40,7 +48,10 @@ if __name__ == "__main__":
         if os.path.abspath(file) == os.path.abspath(__file__):
             print(f"Skipping conversion for {file} (script itself).")
             continue
-        if os.path.exists(file):
-            convert_to_utf8(file)
-        else:
-            print(f"{file} does not exist.")
+        if not os.path.exists(file):
+            print(f"{file} does not exist. Skipping.")
+            continue
+        if not os.access(file, os.R_OK | os.W_OK):
+            print(f"Insufficient permissions to read/write {file}. Skipping.")
+            continue
+        convert_to_utf8(file)
