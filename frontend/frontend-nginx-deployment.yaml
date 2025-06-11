@@ -13,13 +13,28 @@ spec:
       labels:
         app: frontend-nginx
     spec:
+      volumes:
+        - name: static-files
+          configMap:
+            name: frontend-html
+        - name: html-dir
+          emptyDir: {}
+      initContainers:
+        - name: copy-static
+          image: busybox
+          command: ['sh', '-c', 'cp -L /configmap/* /html/']
+          volumeMounts:
+            - name: static-files
+              mountPath: /configmap
+            - name: html-dir
+              mountPath: /html
       containers:
         - name: nginx
           image: nginx:1.21
           ports:
             - containerPort: 80
           volumeMounts:
-            - name: static-files
+            - name: html-dir
               mountPath: /usr/share/nginx/html
           resources:
             requests:
@@ -28,10 +43,6 @@ spec:
             limits:
               cpu: "250m"
               memory: "256Mi"
-      volumes:
-        - name: static-files
-          configMap:
-            name: frontend-html
 ---
 apiVersion: v1
 kind: Service
