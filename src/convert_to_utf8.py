@@ -1,4 +1,4 @@
-import os
+﻿import os
 import chardet
 
 def convert_to_utf8(filename):
