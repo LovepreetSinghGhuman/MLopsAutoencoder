@@ -22,20 +22,20 @@ def convert_to_utf8(filename):
     print(f"Converted {filename} from {encoding} to UTF-8.")
 
 if __name__ == "__main__":
-    files = [
-        "./data/processed/cleaned_test.csv",
-        "./data/processed/cleaned_train.csv",
-        "./deployment/conda.yaml",
-        "./deployment/Dockerfile",
-        "./deployment/k8s/deployment.yaml",
-        "./deployment/k8s/ingress.yaml",
-        "./deployment/k8s/service.yaml",
-        "./deployment/train-job.yaml",
-        "./frontend/frontend-nginx-deployment.yaml",
-        "./frontend/frontend-nginx.yaml",
-        "./frontend/index.html",
-        "./.github/workflows/ci-cd.yaml",  # Ensure workflow file is UTF-8
-    ]
+    # Dynamically find files to match the CI/CD workflow
+    search_dirs = ["src", "models", "deployment"]
+    extensions = (".py", ".csv")
+    files = []
+
+    for d in search_dirs:
+        for root, _, filenames in os.walk(d):
+            for fname in filenames:
+                if fname.endswith(extensions) or fname == "requirements.txt":
+                    files.append(os.path.join(root, fname))
+
+    # Add workflow file explicitly
+    files.append("./.github/workflows/ci-cd.yaml")
+
     for file in files:
         if os.path.abspath(file) == os.path.abspath(__file__):
             print(f"Skipping conversion for {file} (script itself).")
