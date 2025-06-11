@@ -26,7 +26,6 @@ on:
 #
 #   2. **Deploy**:
 #      - Authenticates with Azure and sets AKS context.
-#      - Builds and pushes a deployment Docker image (tagged as 'latest') to ACR.
 #      - Updates the AKS deployment to use the new image, rolling out the new model version.
 #
 # Key Azure Resources:
@@ -57,12 +56,10 @@ env:
   IMAGE_NAME: fraud-detector
   RESOURCE_GROUP: fraud-rg
   AML_WORKSPACE: fraud-workspace
-  # AKS cluster for deployment
   CLUSTER_NAME: fraudAKSCluster
   DEPLOYMENT_NAME: fraud-detector-deployment
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
-  # Azure ML dataset asset for training
   AML_TRAIN_DATA_ASSET: cleaned_train:2
 
 jobs:
@@ -83,10 +80,6 @@ jobs:
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           az version
           az extension add -n ml -y --upgrade
-          az extension show -n ml
-
-      - name: Ensure models directory exists
-        run: mkdir -p models
 
       - name: Ensure all files are UTF-8 encoded (check, convert if needed, verify)
         run: |
@@ -98,7 +91,6 @@ jobs:
             echo "$NON_UTF8"
             echo "Converting files to UTF-8..."
             python src/convert_to_utf8.py
-            # Re-check after conversion
             NON_UTF8=$(find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
               xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || echo "{}"')
             if [ -n "$NON_UTF8" ]; then
@@ -120,8 +112,6 @@ jobs:
             --workspace-name $AML_WORKSPACE \
             --query name -o tsv)
           echo "job_name=$JOB_NAME" >> $GITHUB_OUTPUT
-
-          # Wait for job to complete
           while true; do
             STATUS=$(az ml job show --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --query status -o tsv)
             echo "Current job status: $STATUS"
@@ -131,31 +121,22 @@ jobs:
             sleep 30
           done
 
-      - name: Clean models directory before download
-        run: |
-          rm -rf ./models
-          mkdir -p ./models
-
-      - name: Download model artifacts from Azure ML job outputs
+      - name: Download, move, and check model artifacts
         run: |
           set -e
+          rm -rf ./models
           JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
           az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --download-path ./models
-
-      - name: Move model artifacts to ./models root
-        run: |
-          # Copy from model_dir if it exists (Azure ML output)
+          # Move artifacts to ./models root
           if [ -d "./models/model_dir" ]; then
-            cp -r ./models/model_dir/* ./models/
+            mv ./models/model_dir/* ./models/
+            rmdir ./models/model_dir
           fi
-          # Also support outputs/ for flexibility
           if [ -d "./models/outputs" ]; then
-            cp -r ./models/outputs/* ./models/
+            mv ./models/outputs/* ./models/
+            rmdir ./models/outputs
           fi
-
-      - name: Check for required model artifacts
-        run: |
-          set -e
+          # Check for required artifacts
           REQUIRED_FILES="autoencoder.keras scaler.joblib autoencoder_config.json threshold.json"
           for f in $REQUIRED_FILES; do
             if [ ! -f "./models/$f" ]; then
@@ -165,27 +146,19 @@ jobs:
             fi
           done
           echo "All required model artifacts are present."
-
-      - name: List models directory contents
-        run: ls -lR ./models
+          ls -lR ./models
 
       - name: Register new model version in Azure ML
         run: |
           az ml model create --name fraud_detector_autoencoder --path ./models --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
 
-      - name: Build Docker image for Autoencoder
+      - name: Build and push Docker image for Autoencoder
         run: |
           IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
           docker build -f deployment/Dockerfile -t $IMAGE_TAG .
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      - name: Docker login to ACR
-        run: |
           echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
-
-      - name: Push Docker image
-        run: |
-          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
+          docker push $IMAGE_TAG
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
   deploy:
     needs: build-and-train
@@ -211,14 +184,7 @@ jobs:
           cluster-name: ${{ env.CLUSTER_NAME }}
           resource-group: ${{ env.RESOURCE_GROUP }}
 
-      - name: Build and push Docker image for deployment
-        run: |
-          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:latest
-          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
-          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
-          docker push $IMAGE_TAG
-
       - name: Update Kubernetes deployment image
         run: |
-          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:latest
+          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
           kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_TAG --namespace $NAMESPACE
