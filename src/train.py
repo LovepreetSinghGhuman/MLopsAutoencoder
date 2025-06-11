@@ -26,7 +26,7 @@ class Config:
     LEARNING_RATE = 1e-4
     THRESHOLD_RANGE = (0.9, 0.99)
     NUM_THRESHOLDS = 100
-    EARLY_STOPPING_PATIENCE = 3  # Also reduce patience for faster stopping
+    EARLY_STOPPING_PATIENCE = 3  # Also reduce patience (5) for faster stopping
     REDUCE_LR_PATIENCE = 2
     REDUCE_LR_FACTOR = 0.5
     MIN_LR = 1e-6

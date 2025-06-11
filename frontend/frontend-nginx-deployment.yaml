@@ -14,17 +14,24 @@ spec:
         app: frontend-nginx
     spec:
       containers:
-      - name: nginx
-        image: nginx:1.21
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: html
-          mountPath: /usr/share/nginx/html
+        - name: nginx
+          image: nginx:1.21
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: static-files
+              mountPath: /usr/share/nginx/html
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
       volumes:
-      - name: html
-        configMap:
-          name: frontend-html
+        - name: static-files
+          configMap:
+            name: frontend-html
 ---
 apiVersion: v1
 kind: Service
