@@ -132,6 +132,9 @@ jobs:
         run: |
           docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
 
+      - name: List models directory contents
+        run: ls -lR ./models
+
   deploy:
     needs: build-and-train
     runs-on: ubuntu-latest
