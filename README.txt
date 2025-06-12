@@ -40,13 +40,13 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 ### Task 2: Kubernetes Deployment
 
 - **Backend:** FastAPI app ([src/score.py](src/score.py)) containerized with [deployment/Dockerfile](deployment/Dockerfile).
-- **Frontend:** Simple HTML ([frontend/index.html](frontend/index.html)) served by NGINX ([frontend/Dockerfile](frontend/Dockerfile)).
+- **Frontend:** Responsive HTML ([frontend/index.html](frontend/index.html)), CSS ([frontend/style.css](frontend/style.css)), and JavaScript ([frontend/script.js](frontend/script.js)) served by NGINX ([frontend/Dockerfile](frontend/Dockerfile)). The frontend is cleanly separated for maintainability and style.
 - **Kubernetes Manifests:**  
   - Backend: [deployment/k8s/deployment.yaml](deployment/k8s/deployment.yaml), [deployment/k8s/service.yaml](deployment/k8s/service.yaml)
   - Frontend: [frontend/frontend-nginx-deployment.yaml](frontend/frontend-nginx-deployment.yaml)
   - Ingress: [deployment/k8s/ingress.yaml](deployment/k8s/ingress.yaml) routes `/predict` to FastAPI and all other paths to the static frontend.
 - **Reverse Proxy:** Ingress controller is used for routing and reverse proxy.
-- **User Interaction:** Frontend allows file upload and displays fraud predictions.
+- **User Interaction:** The frontend allows users to upload a CSV or Excel file and displays fraud predictions. The UI is styled with CSS and uses JavaScript for asynchronous file upload and result display.
 - **Microservice Communication:**  
   - Ingress routes `/predict` to the backend API, all other paths to the frontend.
   - [Include a diagram in your report showing this flow.]
@@ -140,6 +140,8 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 ## Additional Notes
 
 - All files are UTF-8 encoded (see [src/convert_to_utf8.py](src/convert_to_utf8.py)).
+  - The CI/CD pipeline checks and converts all Python, CSV, and requirements files to UTF-8 encoding before running any jobs.
+  - If you see an encoding error in the pipeline, open the file in VS Code and use "Save with Encoding" → "UTF-8".
 - Data files are excluded from version control via [.gitignore](.gitignore) and managed with Git LFS ([.gitattributes](.gitattributes)).
 - For any issues, see logs in GitHub Actions or Kubernetes pods.
 - **Model artifacts in `models/` are managed by the pipeline and should not be tracked in git.**
