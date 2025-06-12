@@ -9,7 +9,7 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 ## Quick Links
 
 - **GitHub Repository:** https://github.com/LovepreetSinghGhuman/MLopsAutoencoder.git
-- **Demo Video:** [YOUR_DEMO_VIDEO_LINK_HERE]
+- **Demo Video:** https://drive.google.com/file/d/18_wjC4EDZMhxeHaHiFTGqlicmHjhTNaA/view?usp=drive_link
 
 ---
 
