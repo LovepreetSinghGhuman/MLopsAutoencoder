@@ -60,13 +60,13 @@ env:
   ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
   ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
   IMAGE_NAME: fraud-detector
-  RESOURCE_GROUP: fraud-rg
-  AML_WORKSPACE: fraud-workspace
+  RESOURCE_GROUP: mlopsv2
+  AML_WORKSPACE: mlopsV2
   CLUSTER_NAME: fraudAKSCluster
   DEPLOYMENT_NAME: fraud-backend
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
-  AML_TRAIN_DATA_ASSET: cleaned_train:2
+  AML_TRAIN_DATA_ASSET: azureml:cleaned_train:1
 
 jobs:
   build-and-train:
@@ -108,6 +108,12 @@ jobs:
           else
             echo "All files are UTF-8 encoded."
           fi
+
+      # Debug: Show the contents of the train-job.yaml file
+      - name: Debug resource group
+        run: |
+          echo "RESOURCE_GROUP=$RESOURCE_GROUP"
+          cat deployment/train-job.yaml
 
       # Submit Azure ML training job and wait for completion
       - name: Submit Azure ML training job and wait for completion
