@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: fraudacr12345.azurecr.io/frontend:latest   # Use your pushed image
+          image: cd9a760fdcd945899e13a2db98f7d02d.azurecr.io/frontend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
