@@ -1,0 +1,21 @@
+trigger: none  # Only run when triggered by GitHub Actions
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.9'
+
+  - script: |
+      pip install azure-cli
+      az extension add -n ml -y --upgrade
+      az ml job create --file deployment/train-job.yaml --resource-group $(RESOURCE_GROUP) --workspace-name $(AML_WORKSPACE)
+    displayName: 'Train model on Azure ML'
+
+  # Download model artifacts from Azure ML (or publish as pipeline artifact)
+  - publish: $(System.DefaultWorkingDirectory)/models
+    artifact: trained-model

@@ -69,97 +69,42 @@ env:
   AML_TRAIN_DATA_ASSET: azureml:cleaned_trainv3:1
 
 jobs:
+  trigger-azure-pipeline:
+    runs-on: ubuntu-latest
+    outputs:
+      run_id: ${{ steps.trigger.outputs.run_id }}
+    steps:
+      - name: Trigger Azure Pipeline
+        id: trigger
+        uses: Azure/pipelines@v1
+        with:
+          azure-devops-project-url: ${{ secrets.AZURE_DEVOPS_PROJECT_URL }}
+          azure-pipeline-name: 'Training Autoencoder Model'
+          azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+
+  download-artifact:
+    needs: trigger-azure-pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download trained model artifact from Azure Pipelines
+        uses: Azure/pipelines-artifact-download@v1
+        with:
+          project: ${{ secrets.AZURE_DEVOPS_PROJECT_NAME }}
+          pipeline: 'Training Autoencoder Model'
+          runId: ${{ needs.trigger-azure-pipeline.outputs.run_id }}
+          name: trained-model
+          path: ./models
+
   build-and-train:
+    needs: download-artifact
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Install Azure CLI v2 and ML extension
+      - name: Use downloaded model artifacts
         run: |
-          set -e
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          az version
-          az extension add -n ml -y --upgrade
-
-      # Ensure all files are UTF-8 encoded (check, convert if needed, verify)
-      - name: Ensure all files are UTF-8 encoded (check, convert if needed, verify)
-        run: |
-          echo "Checking encoding for requirements.txt, Python, and CSV files..."
-          NON_UTF8=$(find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
-            xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || echo "{}"')
-          if [ -n "$NON_UTF8" ]; then
-            echo "WARNING: Non-UTF-8 encoding detected in:"
-            echo "$NON_UTF8"
-            echo "Converting files to UTF-8..."
-            python src/convert_to_utf8.py
-            NON_UTF8=$(find src/ models/ deployment/requirements.txt -type f \( -name "*.py" -o -name "*.csv" -o -name "requirements.txt" \) 2>/dev/null | \
-              xargs -I{} bash -c 'file -bi "{}" | grep -q "charset=utf-8" || echo "{}"')
-            if [ -n "$NON_UTF8" ]; then
-              echo "ERROR: The following files are still not UTF-8 encoded after conversion:"
-              echo "$NON_UTF8"
-              exit 1
-            fi
-          else
-            echo "All files are UTF-8 encoded."
-          fi
-
-      # Submit Azure ML training job and wait for completion
-      - name: Submit Azure ML training job and wait for completion
-        id: submit_job
-        run: |
-          set -e
-          JOB_NAME=$(az ml job create \
-            --file deployment/train-job.yaml \
-            --resource-group $RESOURCE_GROUP \
-            --workspace-name $AML_WORKSPACE \
-            --query name -o tsv)
-          echo "job_name=$JOB_NAME" >> $GITHUB_OUTPUT
-          while true; do
-            STATUS=$(az ml job show --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --query status -o tsv)
-            echo "Current job status: $STATUS"
-            if [[ "$STATUS" == "Completed" || "$STATUS" == "Failed" || "$STATUS" == "Canceled" ]]; then
-              break
-            fi
-            sleep 30
-          done
-
-      # Download, flatten, and verify model artifacts
-      - name: Download, flatten, and verify model artifacts
-        run: |
-          set -e
-          rm -rf ./models
-          JOB_NAME="${{ steps.submit_job.outputs.job_name }}"
-          az ml job download --name "$JOB_NAME" --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE --output-name model_dir --download-path ./models
-
-          # Flatten model directory structure
-          find ./models -type f -name 'autoencoder.keras' -exec cp {} ./models/ \;
-          find ./models -type f -name 'scaler.joblib' -exec cp {} ./models/ \;
-          find ./models -type f -name 'autoencoder_config.json' -exec cp {} ./models/ \;
-          find ./models -type f -name 'threshold.json' -exec cp {} ./models/ \;
-
-          # Check for required artifacts
-          REQUIRED_FILES="autoencoder.keras scaler.joblib autoencoder_config.json threshold.json"
-          for f in $REQUIRED_FILES; do
-            if [ ! -f "./models/$f" ]; then
-              echo "ERROR: Required model artifact ./models/$f not found!"
-              ls -lR ./models
-              exit 1
-            fi
-          done
-
-          echo "✅ All required model artifacts are present."
-          ls -lR ./models
-
-      # Register new model version in Azure ML
-      - name: Register new model version in Azure ML
-        run: |
-          az ml model create --name fraud_detector_autoencoder --path ./models --resource-group $RESOURCE_GROUP --workspace-name $AML_WORKSPACE
+          # The ./models directory should now contain the trained model files
 
       # Build and push Docker image for Autoencoder
       - name: Build and push Docker image for Autoencoder
