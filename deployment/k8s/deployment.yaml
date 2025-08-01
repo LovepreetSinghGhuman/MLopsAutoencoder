@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: fraud-detector   # must match CONTAINER_NAME in workflow
-          image: cd9a760fdcd945899e13a2db98f7d02d.azurecr.io/frontend:latest
+          image: <IMAGE_PLACEHOLDER>
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000

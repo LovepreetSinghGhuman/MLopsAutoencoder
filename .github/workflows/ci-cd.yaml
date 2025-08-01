@@ -198,18 +198,6 @@ jobs:
           echo "frontend_image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
         shell: bash
 
-      # Debug: Show the output variable from the step
-      - name: Debug frontend image output
-        run: |
-          echo "Step output (should show image): ${{ steps.build_push.outputs.frontend_image }}"
-        shell: bash
-
-      # Debug: Show the contents of the GITHUB_OUTPUT file
-      - name: Show GITHUB_OUTPUT file
-        run: |
-          cat $GITHUB_OUTPUT
-        shell: bash
-
   deploy:
     needs: [build-and-train, build-and-push-frontend]
     runs-on: ubuntu-latest
@@ -246,22 +234,13 @@ jobs:
       # Update backend deployment image
       - name: Update backend deployment image
         run: |
-          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
-          kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$IMAGE_TAG --namespace $NAMESPACE
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
+          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} ${{ env.CONTAINER_NAME }}=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
         shell: bash
 
       # Update frontend deployment image using output from build-and-push-frontend
-      - name: Debug frontend image in deploy job
-        run: |
-          echo "Deploy job sees frontend_image: ${{ needs.build-and-push-frontend.outputs.frontend_image }}"
-        shell: bash
-
       - name: Update frontend deployment image
         run: |
           IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ needs.build-and-push-frontend.outputs.frontend_image_tag }}
-          if [ -z "$IMAGE_TAG" ]; then
-            echo "ERROR: Frontend image output is empty!"
-            exit 1
-          fi
-          kubectl set image deployment/frontend nginx=$IMAGE_TAG --namespace $NAMESPACE
+          kubectl set image deployment/frontend nginx=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
         shell: bash
