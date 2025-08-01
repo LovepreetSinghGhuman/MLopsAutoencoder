@@ -5,7 +5,7 @@ command: >-
 inputs:
   train_data:
     type: uri_file
-    path: azureml:cleaned_train_v2:1
+    path: azureml:cleaned_trainv3:1
 outputs:
   model_dir:
     type: uri_folder
