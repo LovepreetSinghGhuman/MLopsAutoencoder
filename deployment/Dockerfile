@@ -38,5 +38,9 @@ USER appuser
 # (Optional) Add a healthcheck for production
 HEALTHCHECK CMD curl --fail http://localhost:8000/docs || exit 1
 
+# Print Python and OS information (for debugging)
+RUN python -c "import platform; print('Python arch:', platform.machine())"
+RUN uname -a
+
 # Set entrypoint
 CMD ["uvicorn", "src.score:app", "--host", "0.0.0.0", "--port", "8000"]
