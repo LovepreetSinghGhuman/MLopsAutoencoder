@@ -27,3 +27,32 @@ command: >-
   --train-data ${{inputs.train_data}}
   $[[--val-data ${{inputs.val_data}}]]
   --output-dir ${{outputs.model_dir}}
+name: train-autoencoder
+display_name: Train Autoencoder
+description: Train an autoencoder model for fraud detection on tabular data.
+version: 1
+type: command
+
+inputs:
+  train_data:
+    type: uri_file
+    description: Path to the training CSV file (registered data asset)
+  val_data:
+    type: uri_file
+    optional: true
+    description: (Optional) Path to validation CSV file
+
+outputs:
+  model_dir:
+    type: uri_folder
+    description: Output folder for model artifacts (Keras model, scaler, config, threshold)
+
+environment:
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
+
+command: >-
+  python train.py
+  --train-data ${{inputs.train_data}}
+  $[[--val-data ${{inputs.val_data}}]]
+  --output-dir ${{outputs.model_dir}}
