@@ -66,7 +66,7 @@ env:
   DEPLOYMENT_NAME: fraud-backend
   CONTAINER_NAME: fraud-detector
   NAMESPACE: default
-  AML_TRAIN_DATA_ASSET: azureml:cleaned_trainv3:1
+  AML_TRAIN_DATA_ASSET: azureml:cleaned_train_v2:1
 
 jobs:
   train-on-azureml:
