@@ -97,7 +97,7 @@ jobs:
 
       - name: Download model artifacts from Azure ML
         run: |
-          az ml job download --name ${{ steps.submit_job.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --output ./models --all
+          az ml job download --name ${{ steps.submit_job.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models --all
 
       - name: Flatten and verify model artifacts
         run: bash scripts/flatten_model_artifacts.sh
