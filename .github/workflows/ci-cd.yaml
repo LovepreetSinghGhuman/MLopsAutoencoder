@@ -1,9 +1,4 @@
 name: Build_and_Deploy
-
-on:
-  push:
-    branches:
-      - main
 # =============================================================================
 # CI/CD Workflow for Fraud Detection Autoencoder (Azure ML & AKS)
 #
@@ -55,6 +50,11 @@ on:
 #   - **Deployment**: Updates the AKS deployment to use the new Docker image.
 # =============================================================================
 
+on:
+  push:
+    branches:
+      - main
+
 env:
   ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
   ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
@@ -69,56 +69,10 @@ env:
   AML_TRAIN_DATA_ASSET: azureml:cleaned_trainv3:1
 
 jobs:
-  trigger-azure-pipeline:
+  train-on-azureml:
     runs-on: ubuntu-latest
     outputs:
-      run_id: ${{ steps.trigger.outputs.run_id }}
-    steps:
-      - name: Trigger Azure Pipeline
-        id: trigger
-        uses: Azure/pipelines@v1
-        with:
-          azure-devops-project-url: ${{ secrets.AZURE_DEVOPS_PROJECT_URL }}
-          azure-pipeline-name: 'Training Autoencoder Model'
-          azure-devops-token: ${{ secrets.AZURE_DEVOPS_TOKEN }}
-
-  download-artifact:
-    needs: trigger-azure-pipeline
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download trained model artifact from Azure Pipelines
-        uses: Azure/pipelines-artifact-download@v1
-        with:
-          project: ${{ secrets.AZURE_DEVOPS_PROJECT_NAME }}
-          pipeline: 'Training Autoencoder Model'
-          runId: ${{ needs.trigger-azure-pipeline.outputs.run_id }}
-          name: trained-model
-          path: ./models
-
-  build-and-train:
-    needs: download-artifact
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Use downloaded model artifacts
-        run: |
-          # The ./models directory should now contain the trained model files
-
-      # Build and push Docker image for Autoencoder
-      - name: Build and push Docker image for Autoencoder
-        run: |
-          IMAGE_TAG=$ACR_LOGIN_SERVER/$IMAGE_NAME:autoencoder
-          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
-          echo "$ACR_PASSWORD" | docker login "$ACR_LOGIN_SERVER" -u "$ACR_USERNAME" --password-stdin
-          docker push $IMAGE_TAG
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-  build-and-push-frontend:
-    runs-on: ubuntu-latest
-    outputs:
-      frontend_image_tag: ${{ steps.build_push.outputs.frontend_image_tag }}
+      job_id: ${{ steps.submit_job.outputs.job_id }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -128,6 +82,53 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Install Azure CLI and ML extension
+        run: |
+          pip install --upgrade pip
+          pip install azure-cli
+          az version
+          az extension add -n ml -y --upgrade
+
+      - name: Submit Azure ML training job
+        id: submit_job
+        run: |
+          JOB_ID=$(az ml job create --file deployment/train-job.yaml --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --query name -o tsv)
+          echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Download model artifacts from Azure ML
+        run: |
+          az ml job download --name ${{ steps.submit_job.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --output ./models --all
+
+      - name: Flatten and verify model artifacts
+        run: bash scripts/flatten_model_artifacts.sh
+
+  build-and-train:
+    needs: train-on-azureml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+        shell: bash
+
+      - name: Build and push backend Docker image
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
+          docker build -f deployment/Dockerfile -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          echo "BACKEND_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_image_tag: ${{ steps.build_push.outputs.frontend_image_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Log in to ACR
         run: |
           echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
@@ -136,11 +137,10 @@ jobs:
       - name: Build and push frontend Docker image
         id: build_push
         run: |
-          IMAGE_TAG=frontend:latest
-          FULL_IMAGE=${{ secrets.ACR_LOGIN_SERVER }}/$IMAGE_TAG
-          docker build -t $FULL_IMAGE -f frontend/Dockerfile frontend
-          docker push $FULL_IMAGE
-          echo "frontend_image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          docker build -t $IMAGE_TAG -f frontend/Dockerfile frontend
+          docker push $IMAGE_TAG
+          echo "frontend_image_tag=frontend:latest" >> $GITHUB_OUTPUT
         shell: bash
 
   deploy:
@@ -169,41 +169,21 @@ jobs:
           resource-group: ${{ env.RESOURCE_GROUP }}
 
       - name: Make apply_all_k8s.sh executable
-        run: chmod +x apply_all_k8s.sh
+        run: chmod +x scripts/apply_all_k8s.sh
         shell: bash
 
       - name: Apply all Kubernetes manifests
-        run: ./apply_all_k8s.sh
+        run: scripts/apply_all_k8s.sh
         shell: bash
 
-      # Update backend deployment image
       - name: Update backend deployment image
         run: |
           IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
           kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} ${{ env.CONTAINER_NAME }}=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
         shell: bash
 
-      # Update frontend deployment image using output from build-and-push-frontend
       - name: Update frontend deployment image
         run: |
-          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ needs.build-and-push-frontend.outputs.frontend_image_tag }}
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
           kubectl set image deployment/frontend nginx=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
         shell: bash
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to ACR
-        run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
-        shell: bash
-
-      - name: Build and push backend Docker image (ARM64)
-        run: |
-          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
-          docker buildx build --platform linux/arm64 -t $IMAGE_TAG -f deployment/Dockerfile . --push
-
-      - name: Build and push frontend Docker image (ARM64)
-        run: |
-          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
-          docker buildx build --platform linux/arm64 -t $IMAGE_TAG -f frontend/Dockerfile frontend --push
