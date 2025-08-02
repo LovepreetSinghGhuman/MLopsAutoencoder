@@ -77,6 +77,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Validate and convert files to UTF-8
+        run: |
+          pip install chardet
+          python src/convert_to_utf8.py
+
       - name: Log in to Azure
         uses: azure/login@v1
         with:
@@ -94,6 +99,21 @@ jobs:
         run: |
           JOB_ID=$(az ml job create --file deployment/train-job.yaml --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --query name -o tsv)
           echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Wait for Azure ML job to complete
+        run: |
+          for i in {1..60}; do
+            STATUS=$(az ml job show --name ${{ steps.submit_job.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --query status -o tsv)
+            echo "Current job status: $STATUS"
+            if [[ "$STATUS" == "Completed" || "$STATUS" == "Failed" || "$STATUS" == "Canceled" || "$STATUS" == "NotResponding" || "$STATUS" == "Paused" ]]; then
+              break
+            fi
+            sleep 30
+          done
+          if [[ "$STATUS" != "Completed" ]]; then
+            echo "Azure ML job did not complete successfully. Status: $STATUS"
+            exit 1
+          fi
 
       - name: Download model artifacts from Azure ML
         run: |
@@ -186,4 +206,8 @@ jobs:
         run: |
           IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
           kubectl set image deployment/frontend nginx=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
+        shell: bash
+
+      - name: List all pods in AKS
+        run: kubectl get pods --namespace ${{ env.NAMESPACE }}
         shell: bash
