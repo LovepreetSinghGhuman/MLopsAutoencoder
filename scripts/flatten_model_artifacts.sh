@@ -28,9 +28,11 @@ if [ -z "$FOUND_DIR" ]; then
 fi
 
 echo "✅ Found model artifacts in: $FOUND_DIR"
-# Copy to ./models/ root for Docker build
+# Copy to ./models/ root for Docker build, skip if source and destination are the same
 for f in "${REQUIRED_FILES[@]}"; do
-  cp "$FOUND_DIR/$f" "$MODEL_ROOT/"
+  if [ "$FOUND_DIR/$f" != "$MODEL_ROOT/$f" ]; then
+    cp "$FOUND_DIR/$f" "$MODEL_ROOT/"
+  fi
 done
 
-echo "✅ Model artifacts copied to
+echo "✅ Model artifacts copied to ./models"
