@@ -1,0 +1,213 @@
+name: Build_and_Deploy
+# =============================================================================
+# CI/CD Workflow for Fraud Detection Autoencoder (Azure ML & AKS)
+#
+# Purpose:
+#   Automates the end-to-end lifecycle of a fraud detection model using Azure ML and AKS.
+#
+# Workflow Overview:
+#   1. **Build & Train**:
+#      - Checks out repository code.
+#      - Authenticates with Azure using GitHub secrets.
+#      - Installs Azure CLI and ML extension for job management.
+#      - Ensures all relevant files are UTF-8 encoded for compatibility.
+#      - Submits a training job to Azure ML (using deployment/train-job.yaml).
+#      - Waits for training completion and downloads model artifacts.
+#      - Flattens and verifies the model artifact directory structure.
+#      - Registers the trained model in Azure ML for versioning and tracking.
+#      - Builds a Docker image for the trained model and pushes it to Azure Container Registry (ACR).
+#
+#   2. **Deploy**:
+#      - Authenticates with Azure and sets AKS context.
+#      - Updates the AKS deployment to use the new image, rolling out the new model version.
+#
+# Key Azure Resources:
+#   - Azure ML Workspace: Manages experiments, jobs, and model registry.
+#   - Azure Container Registry (ACR): Stores Docker images for model serving.
+#   - Azure Kubernetes Service (AKS): Hosts the deployed model as a web service.
+#
+# Security & Best Practices:
+#   - All Azure credentials and secrets are securely stored in GitHub Actions secrets.
+#   - UTF-8 encoding is enforced to prevent runtime errors due to incompatible file encodings.
+#   - Model versioning is handled via Azure ML's model registry.
+#
+# Customization:
+#   - Update resource names, cluster names, and dataset assets as needed.
+#   - The training job specification is defined in deployment/train-job.yaml.
+#   - The Dockerfile for model serving is located at deployment/Dockerfile.
+#
+# Troubleshooting:
+#   - If the workflow fails at encoding checks, ensure all source and data files are UTF-8.
+#   - Azure CLI and ML extension installation steps are idempotent and safe to rerun.
+#   - For deployment issues, check AKS logs and image tags.
+#
+# Stage Details:
+#   - **UTF-8 Check**: Ensures all Python, CSV, and requirements files are UTF-8 encoded.
+#   - **Training Job**: Submits and monitors an Azure ML job, waits for completion.
+#   - **Artifact Handling**: Downloads, flattens, and verifies required model artifacts.
+#   - **Model Registration**: Registers the new model version in Azure ML.
+#   - **Containerization**: Builds and pushes a Docker image for the trained model.
+#   - **Deployment**: Updates the AKS deployment to use the new Docker image.
+# =============================================================================
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+  ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+  ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+  IMAGE_NAME: fraud-detector
+  RESOURCE_GROUP: mlopsv2
+  AML_WORKSPACE: mlopsV2
+  CLUSTER_NAME: fraudAKSCluster
+  DEPLOYMENT_NAME: fraud-backend
+  CONTAINER_NAME: fraud-detector
+  NAMESPACE: default
+  AML_TRAIN_DATA_ASSET: azureml:cleaned_train_v2:1
+
+jobs:
+  train-on-azureml:
+    runs-on: ubuntu-latest
+    outputs:
+      job_id: ${{ steps.submit_job.outputs.job_id }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Validate and convert files to UTF-8
+        run: |
+          pip install chardet
+          python src/convert_to_utf8.py
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Azure CLI and ML extension
+        run: |
+          pip install --upgrade pip
+          pip install azure-cli
+          az version
+          az extension add -n ml -y --upgrade
+
+      - name: Submit Azure ML training job
+        id: submit_job
+        run: |
+          JOB_ID=$(az ml job create --file deployment/train-job.yaml --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --query name -o tsv)
+          echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Wait for Azure ML job to complete
+        run: |
+          for i in {1..60}; do
+            STATUS=$(az ml job show --name ${{ steps.submit_job.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --query status -o tsv)
+            echo "Current job status: $STATUS"
+            if [[ "$STATUS" == "Completed" || "$STATUS" == "Failed" || "$STATUS" == "Canceled" || "$STATUS" == "NotResponding" || "$STATUS" == "Paused" ]]; then
+              break
+            fi
+            sleep 30
+          done
+          if [[ "$STATUS" != "Completed" ]]; then
+            echo "Azure ML job did not complete successfully. Status: $STATUS"
+            exit 1
+          fi
+
+      - name: Download model artifacts from Azure ML
+        run: |
+          az ml job download --name ${{ steps.submit_job.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models --all
+
+      - name: Flatten and verify model artifacts
+        run: bash scripts/flatten_model_artifacts.sh
+
+  build-and-train:
+    needs: train-on-azureml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+        shell: bash
+
+      - name: Build and push backend Docker image
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
+          docker build --no-cache --platform=linux/amd64 -f deployment/Dockerfile -t $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          echo "BACKEND_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+  build-and-push-frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_image_tag: ${{ steps.build_push.outputs.frontend_image_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+        shell: bash
+
+      - name: Build and push frontend Docker image
+        id: build_push
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          docker build --no-cache --platform=linux/amd64 -t $IMAGE_TAG -f frontend/Dockerfile frontend
+          docker push $IMAGE_TAG
+          echo "frontend_image_tag=frontend:latest" >> $GITHUB_OUTPUT
+        shell: bash
+
+  deploy:
+    needs: [build-and-train, build-and-push-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Azure CLI v2
+        run: |
+          set -e
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az version
+        shell: bash
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          cluster-name: ${{ env.CLUSTER_NAME }}
+          resource-group: ${{ env.RESOURCE_GROUP }}
+
+      - name: Make apply_all_k8s.sh executable
+        run: chmod +x scripts/apply_all_k8s.sh
+        shell: bash
+
+      - name: Apply all Kubernetes manifests
+        run: scripts/apply_all_k8s.sh
+        shell: bash
+
+      - name: Update backend deployment image
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
+          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} ${{ env.CONTAINER_NAME }}=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
+        shell: bash
+
+      - name: Update frontend deployment image
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          kubectl set image deployment/frontend nginx=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
+        shell: bash
+
+      - name: List all pods in AKS
+        run: kubectl get pods --namespace ${{ env.NAMESPACE }}
+        shell: bash

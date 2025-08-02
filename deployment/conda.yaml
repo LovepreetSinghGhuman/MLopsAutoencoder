@@ -1,0 +1,15 @@
+name: fraud-tf-cpu
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - numpy
+      - pandas
+      - scikit-learn
+      - joblib
+      - tensorflow==2.15
+      - fastapi
+      - uvicorn
