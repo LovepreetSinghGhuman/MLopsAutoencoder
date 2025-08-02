@@ -15,7 +15,7 @@ spec:
       containers:
         - name: fraud-detector   # must match CONTAINER_NAME in workflow
           image: cd9a760fdcd945899e13a2db98f7d02d.azurecr.io/fraud-detector:autoencoder
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:
