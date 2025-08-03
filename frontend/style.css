@@ -69,6 +69,24 @@ button:hover, button:focus {
   font-size: 1rem;
   min-height: 32px;
   word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+#results table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+#results th, #results td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  text-align: left;
+}
+#results th {
+  background: #3a86ff;
+  color: #fff;
+  position: sticky;
+  top: 0;
 }
 #loading {
   display: none;
