@@ -103,6 +103,12 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 
 ---
 
+## Project Versions
+
+I have 2 versions:
+- **Version 1 (branch `main`)**: I utilize GitHub workflow to fully automate everything, from training to model creation to deployment of frontend and backend.
+- **Version 2 (branch `azurePipelines`)**: I utilize Azure Pipelines and GitHub workflow. Azure Pipeline handles model creation and training, while GitHub Actions takes the artifacts and deploys the frontend
+
 ## Repository Structure
 
 - **src/**: Training, inference, and pipeline scripts.
