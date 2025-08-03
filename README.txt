@@ -13,6 +13,26 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 
 ---
 
+## What's New
+
+- **Frontend:**  
+  - Results are now displayed in a scrollable, styled table for better readability.
+  - Errors are highlighted in red for easier debugging.
+  - Loading indicator is shown during prediction.
+  - Large outputs do not break the layout.
+- **Kubernetes Ingress:**  
+  - NGINX Ingress controller is installed and configured.
+  - Ingress routes `/predict` and `/health` to the backend, all other paths to the frontend.
+  - External IP is assigned automatically for public access.
+- **ARM64 Support:**  
+  - All Docker images are built for `linux/arm64` to match AKS node architecture.
+- **CI/CD Workflow:**  
+  - Improved step descriptions and documentation in `.github/workflows/ci-cd.yaml`.
+  - Additional diagnostic and summary steps for easier troubleshooting.
+  - Automatic retraining, image build, and redeployment on every push to `main`.
+
+---
+
 ## Brief Explanation of the Project
 
 - **Data:** IEEE-CIS fraud detection dataset (preprocessed as shown in [notebook_original/IEEE_CIS_AutoencoderV4.ipynb](notebook_original/IEEE_CIS_AutoencoderV4.ipynb)).
@@ -40,18 +60,23 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 ### Task 2: Kubernetes Deployment
 
 - **Backend:** FastAPI app ([src/score.py](src/score.py)) containerized with [deployment/Dockerfile](deployment/Dockerfile).
-- **Frontend:** Responsive HTML ([frontend/index.html](frontend/index.html)), CSS ([frontend/style.css](frontend/style.css)), and JavaScript ([frontend/script.js](frontend/script.js)) served by NGINX ([frontend/Dockerfile](frontend/Dockerfile)). The frontend is cleanly separated for maintainability and style.
+- **Frontend:** Responsive HTML ([frontend/index.html](frontend/index.html)), CSS ([frontend/style.css](frontend/style.css)), and JavaScript ([frontend/script.js](frontend/script.js)) served by NGINX ([frontend/Dockerfile](frontend/Dockerfile)).  
+  - **Latest:** Results are now shown as a scrollable table, errors are styled, and the UI is more user-friendly.
 - **Kubernetes Manifests:**  
   - Backend: [deployment/k8s/deployment.yaml](deployment/k8s/deployment.yaml), [deployment/k8s/service.yaml](deployment/k8s/service.yaml)
-  - Frontend: [frontend/frontend-nginx-deployment.yaml](frontend/frontend-nginx-deployment.yaml)
-  - Ingress: [deployment/k8s/ingress.yaml](deployment/k8s/ingress.yaml) routes `/predict` to FastAPI and all other paths to the static frontend.
-- **Reverse Proxy:** Ingress controller is used for routing and reverse proxy.
-- **User Interaction:** The frontend allows users to upload a CSV or Excel file and displays fraud predictions. The UI is styled with CSS and uses JavaScript for asynchronous file upload and result display.
+  - Frontend: [frontend/frontend-nginx-deployment.yaml](frontend/frontend-nginx-deployment.yaml), [frontend/frontend-nginx-service.yaml](frontend/frontend-nginx-service.yaml)
+  - Ingress: [deployment/k8s/ingress.yaml](deployment/k8s/ingress.yaml) routes `/predict` and `/health` to FastAPI, all other paths to the static frontend.
+- **Reverse Proxy:**  
+  - NGINX Ingress controller is installed and configured for routing.
+  - Ingress resource automatically gets an external IP for public access.
+- **User Interaction:**  
+  - The frontend allows users to upload a CSV or Excel file and displays fraud predictions in a table.
+  - The UI is styled with CSS and uses JavaScript for asynchronous file upload and result display.
 - **Microservice Communication:**  
-  - Ingress routes `/predict` to the backend API, all other paths to the frontend.
+  - Ingress routes `/predict` and `/health` to the backend API, all other paths to the frontend.
   - [Include a diagram in your report showing this flow.]
 - **Screenshots to include in report:**  
-  - Frontend UI (file upload and result).
+  - Frontend UI (file upload and result table).
   - FastAPI `/docs` page.
   - Output of `kubectl get pods,svc,ingress` to show running services.
 
@@ -71,6 +96,7 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
   - See [ci-cd.yaml](.github/workflows/ci-cd.yaml) for workflow logic.
   - Model versioning is handled via Azure ML's model registry.
   - All secrets are managed via GitHub Actions secrets.
+  - **Latest:** Workflow steps are now more descriptive, with additional diagnostics and summaries.
 - **Screenshots to include in report:**  
   - GitHub Actions workflow runs (showing retrain, build, deploy steps).
   - Any manual steps (if any) should be explained.
@@ -92,7 +118,8 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 ### Cloud Workflow (Recommended)
 1. **Push to main branch**  
    - Triggers the CI/CD pipeline automatically.
-   - Azure ML retrains the model, downloads artifacts, builds and pushes Docker images, and updates the Kubernetes deployment.
+   - Azure ML retrains the model, downloads artifacts, builds and pushes Docker images (for ARM64), and updates the Kubernetes deployment.
+   - Ingress controller assigns an external IP for public access.
 
 ### Manual (for local testing)
 1. **Training:**  
@@ -101,12 +128,12 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
    ```
 2. **Build & Deploy:**  
    ```
-   docker build -f deployment/Dockerfile -t fraud-detector:latest .
+   docker buildx build --platform=linux/arm64 -f deployment/Dockerfile -t fraud-detector:latest .
    ```
    - Push to ACR and deploy to AKS using provided manifests.
 3. **Frontend:**  
    - Access via the service/ingress endpoint.
-   - Upload a CSV/Excel file and view predictions.
+   - Upload a CSV/Excel file and view predictions in a table.
 
 ---
 
@@ -117,6 +144,7 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 ```
 - All services are containerized and orchestrated by Kubernetes.
 - Model retraining and redeployment are fully automated via CI/CD.
+- Ingress controller handles all routing and public access.
 
 ---
 
@@ -124,10 +152,10 @@ This repository demonstrates a **complete MLOps workflow** for fraud detection u
 
 - **Include links** to this repository and your demo video in your report.
 - **Screenshots:**  
-  - Azure ML job runs, GitHub Actions pipeline, FastAPI docs, frontend UI, and Kubernetes resources.
+  - Azure ML job runs, GitHub Actions pipeline, FastAPI docs, frontend UI (with table), and Kubernetes resources.
 - **Explain:**  
   - How microservices communicate (see diagram above).
-  - Any special Kubernetes setup or configuration.
+  - Any special Kubernetes setup or configuration (e.g., Ingress controller, ARM64 nodes).
   - Your CI/CD update strategy and why you chose it.
   - How you keep track of model versions (Azure ML registry).
 - **Reflection:**  
