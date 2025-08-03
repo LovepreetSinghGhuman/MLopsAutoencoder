@@ -140,7 +140,7 @@ jobs:
       - name: Build and push backend Docker image
         run: |
           IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
-          docker buildx build --platform=linux/amd64 -f deployment/Dockerfile -t $IMAGE_TAG . --push
+          docker buildx build --platform=linux/arm64 -f deployment/Dockerfile -t $IMAGE_TAG . --push
           echo "BACKEND_IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
   build-and-push-frontend:
@@ -163,7 +163,7 @@ jobs:
         id: build_push
         run: |
           IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
-          docker buildx build --platform=linux/amd64 -t $IMAGE_TAG -f frontend/Dockerfile frontend --push
+          docker buildx build --platform=linux/arm64 -t $IMAGE_TAG -f frontend/Dockerfile frontend --push
           echo "frontend_image_tag=frontend:latest" >> $GITHUB_OUTPUT
         shell: bash
 
