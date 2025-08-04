@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/component.schema.json
 name: train_autoencoder_component
-version: 1
+version: 5
 type: command
 inputs:
   train_data:
@@ -10,9 +10,9 @@ outputs:
   model_dir:
     type: uri_folder
     description: Output directory for model artifacts
-code: ../..
+code: ../src
 command: >-
-  python src/train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}}
+  python train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}}
 environment:
   conda_file: conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest

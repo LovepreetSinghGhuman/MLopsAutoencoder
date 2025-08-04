@@ -35,19 +35,26 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Get latest successful Azure ML job ID
-        id: get_job_id
+      - name: Submit Azure ML pipeline job
         run: |
-          JOB_ID=$(az ml job list --workspace-name ${{ env.AML_WORKSPACE }} --resource-group ${{ env.RESOURCE_GROUP }} --query "[?contains(display_name, 'train-autoencoder') && status=='Completed'] | [0].name" -o tsv)
-          echo "Latest job ID: $JOB_ID"
-          echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+          az ml job create --file deployment/pipeline-job.yaml \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.AML_WORKSPACE }} \
+            --set display_name=train-autoencoder
+        shell: bash
 
-      - name: Download model artifacts from Azure ML
+      - name: Wait for pipeline completion
         run: |
-          set -e
-          az ml job download --name ${{ steps.get_job_id.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models --all
+          JOB_ID=$(az ml job list --workspace-name ${{ env.AML_WORKSPACE }} --resource-group ${{ env.RESOURCE_GROUP }} --query "[?display_name=='train-autoencoder'] | [0].name" -o tsv)
+          echo "Waiting for job $JOB_ID to complete..."
+          az ml job wait --name $JOB_ID --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }}
+        shell: bash
+
+      - name: Download registered model from Azure ML
+        run: |
+          az ml model download --name fraud_autoencoder --latest --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models
           if [ ! -d "./models" ] || [ -z "$(ls -A ./models)" ]; then
-            echo "Model artifacts not found! Failing the build."
+            echo "Registered model not found! Failing the build."
             exit 1
           fi
         shell: bash

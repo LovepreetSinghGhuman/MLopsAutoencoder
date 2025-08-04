@@ -5,11 +5,11 @@ channels:
 dependencies:
   - python=3.9
   - pip
+  - azure-cli
   - pip:
       - numpy
       - pandas
       - scikit-learn
-      - joblib
-      - tensorflow==2.15
-      - fastapi
       - uvicorn
+      - azure-ai-ml
+      - azure-identity

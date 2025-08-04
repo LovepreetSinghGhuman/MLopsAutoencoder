@@ -1,0 +1,25 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+display_name: train-autoencoder-pipeline
+description: Pipeline job to train autoencoder using registered component
+
+jobs:
+  train_autoencoder:
+    type: command
+    component: azureml:train_autoencoder_component:5
+    compute: azureml:mycpucluster
+    inputs:
+      train_data:
+        type: uri_file
+        path: azureml:cleaned_train_v2:2
+    outputs:
+      model_dir: 
+        mode: upload
+
+  register_model:
+    type: command
+    component: azureml:register_model:8
+    inputs:
+      model_path: ${{parent.jobs.train_autoencoder.outputs.model_dir}}
+      model_name: fraud_autoencoder
+    compute: azureml:mycpucluster
