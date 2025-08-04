@@ -1,0 +1,19 @@
+$schema: https://azuremlschemas.azureedge.net/latest/component.schema.json
+name: train_autoencoder_component
+version: 1
+type: command
+inputs:
+  train_data:
+    type: uri_file
+    description: Path to the training data CSV
+outputs:
+  model_dir:
+    type: uri_folder
+    description: Output directory for model artifacts
+code: ../..
+command: >-
+  python src/train.py --train-data ${{inputs.train_data}} --output-dir ${{outputs.model_dir}}
+environment:
+  conda_file: conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
+description: Train autoencoder model for fraud detection and output model artifacts.
