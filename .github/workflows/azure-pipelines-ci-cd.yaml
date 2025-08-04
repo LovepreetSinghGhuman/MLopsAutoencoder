@@ -1,0 +1,106 @@
+name: AzurePipelines_Build_Deploy
+
+on:
+  push:
+    branches:
+      - azurePipelines
+
+env:
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+  ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+  ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+  IMAGE_NAME: fraud-detector
+  RESOURCE_GROUP: mlopsv2
+  AML_WORKSPACE: mlopsV2
+  CLUSTER_NAME: fraudAKSCluster
+  DEPLOYMENT_NAME: fraud-backend
+  CONTAINER_NAME: fraud-detector
+  NAMESPACE: default
+  AML_TRAIN_DATA_ASSET: azureml:cleaned_train_v2:1
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v3
+
+      - name: 📝 Validate and convert files to UTF-8
+        run: |
+          pip install chardet
+          python src/convert_to_utf8.py
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get latest successful Azure ML job ID
+        id: get_job_id
+        run: |
+          JOB_ID=$(az ml job list --workspace-name ${{ env.AML_WORKSPACE }} --resource-group ${{ env.RESOURCE_GROUP }} --query "[?contains(display_name, 'train-autoencoder') && status=='Completed'] | [0].name" -o tsv)
+          echo "Latest job ID: $JOB_ID"
+          echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Download model artifacts from Azure ML
+        run: |
+          set -e
+          az ml job download --name ${{ steps.get_job_id.outputs.job_id }} --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models --all
+          if [ ! -d "./models" ] || [ -z "$(ls -A ./models)" ]; then
+            echo "Model artifacts not found! Failing the build."
+            exit 1
+          fi
+        shell: bash
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+
+      - name: Build and push backend Docker image
+        run: |
+          set -e
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
+          docker buildx build --platform=linux/arm64 -f deployment/Dockerfile -t $IMAGE_TAG . --push
+        continue-on-error: false
+
+      - name: Build and push frontend Docker image
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          docker buildx build --platform=linux/arm64 -t $IMAGE_TAG -f frontend/Dockerfile frontend --push
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          cluster-name: ${{ env.CLUSTER_NAME }}
+          resource-group: ${{ env.RESOURCE_GROUP }}
+
+      - name: Apply all Kubernetes manifests
+        run: |
+          chmod +x scripts/apply_all_k8s.sh
+          scripts/apply_all_k8s.sh
+
+      - name: Update backend deployment image
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:autoencoder
+          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} ${{ env.CONTAINER_NAME }}=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
+
+      - name: Update frontend deployment image
+        run: |
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          kubectl set image deployment/frontend nginx=$IMAGE_TAG --namespace ${{ env.NAMESPACE }}
+
+      - name: Wait for backend rollout
+        run: kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} --namespace ${{ env.NAMESPACE }} --timeout=180s
+
+      - name: Wait for frontend rollout
+        run: kubectl rollout status deployment/frontend --namespace ${{ env.NAMESPACE }} --timeout=180s
+
+      - name: Deployment summary
+        run: |
+          kubectl get pods --namespace ${{ env.NAMESPACE }}
+          kubectl get svc --namespace ${{ env.NAMESPACE }}
+          kubectl get ingress --namespace ${{ env.NAMESPACE }}
+
