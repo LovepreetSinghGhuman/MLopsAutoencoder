@@ -74,6 +74,17 @@ jobs:
           fi
         shell: bash
 
+      - name: Register model in Azure ML
+        run: |
+          MODEL_VERSION=$(date +'%Y%m%d%H%M%S')
+          az ml model create \
+            --name fraud-autoencoder \
+            --type custom_model \
+            --version $MODEL_VERSION \
+            --path ./models \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.AML_WORKSPACE }}
+
       - name: Upload model artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -87,11 +98,17 @@ jobs:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v3
 
-      - name: Download model artifacts
-        uses: actions/download-artifact@v4
+      - name: 🔐 Azure Login
+        uses: azure/login@v1
         with:
-          name: model-artifacts
-          path: ./models
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download latest registered model from Azure ML
+        run: |
+          MODEL_NAME=fraud-autoencoder
+          MODEL_VERSION=$(az ml model list --name $MODEL_NAME --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --query "[0].version" -o tsv)
+          echo "Latest model version: $MODEL_VERSION"
+          az ml model download --name $MODEL_NAME --version $MODEL_VERSION --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models --overwrite
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -156,5 +173,4 @@ jobs:
           kubectl get pods --namespace ${{ env.NAMESPACE }}
           kubectl get svc --namespace ${{ env.NAMESPACE }}
           kubectl get ingress --namespace ${{ env.NAMESPACE }}
-          kubectl get services --namespace ${{ env.NAMESPACE }}
 
