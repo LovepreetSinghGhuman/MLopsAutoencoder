@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/component.schema.json
 name: register_model
-version: 8
+version: 9
 type: command
 inputs:
   model_path:
