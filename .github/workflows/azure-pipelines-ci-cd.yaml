@@ -156,4 +156,5 @@ jobs:
           kubectl get pods --namespace ${{ env.NAMESPACE }}
           kubectl get svc --namespace ${{ env.NAMESPACE }}
           kubectl get ingress --namespace ${{ env.NAMESPACE }}
+          kubectl get services --namespace ${{ env.NAMESPACE }}
 

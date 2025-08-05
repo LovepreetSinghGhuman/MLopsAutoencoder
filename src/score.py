@@ -118,9 +118,9 @@ def preprocess_data(
     return X_scaled, scaler, feature_columns
 
 app = FastAPI(
-    title="Fraud Detector Autoencoder",
-    description="Upload an Excel file; returns fraud predictions.",
-    version="1.0"
+    title="Fraud Detection API",
+    docs_url="/docs",          # Swagger UI
+    openapi_url="/openapi.json"
 )
 
 # Add CORS middleware
