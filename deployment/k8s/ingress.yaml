@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: fraud-ingress
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "10000m"   # Allow up to 20MB uploads (adjust as needed)
+    nginx.ingress.kubernetes.io/proxy-body-size: "10000m"   # Allow up to 10GB uploads
 spec:
   ingressClassName: nginx
   rules:

@@ -13,7 +13,7 @@ spec:
         app: fraud-backend
     spec:
       containers:
-        - name: fraud-detector   # must match CONTAINER_NAME in workflow
+        - name: fraud-detector
           image: cd9a760fdcd945899e13a2db98f7d02d.azurecr.io/fraud-detector:autoencoder
           imagePullPolicy: Always
           ports:
