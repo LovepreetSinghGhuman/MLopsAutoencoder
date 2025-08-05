@@ -67,8 +67,7 @@ jobs:
       - name: Download model artifacts from train_autoencoder_component
         run: |
           JOB_ID=$(az ml job list --workspace-name ${{ env.AML_WORKSPACE }} --resource-group ${{ env.RESOURCE_GROUP }} --query "[?display_name=='train-autoencoder'] | [0].name" -o tsv)
-          COMPONENT_RUN_ID=$(az ml job show --name $JOB_ID --workspace-name ${{ env.AML_WORKSPACE }} --resource-group ${{ env.RESOURCE_GROUP }} --query "outputs.model_dir.producer_run_id" -o tsv)
-          az ml job download --name $COMPONENT_RUN_ID --output-name model_dir --download-path ./models --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }}
+          az ml job download --name $JOB_ID --output-name model_dir --download-path ./models --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }}
           if [ ! -d "./models" ] || [ -z "$(ls -A ./models)" ]; then
             echo "Model artifacts not found! Failing the build."
             exit 1
