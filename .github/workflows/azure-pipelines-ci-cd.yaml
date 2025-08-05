@@ -47,7 +47,21 @@ jobs:
         run: |
           JOB_ID=$(az ml job list --workspace-name ${{ env.AML_WORKSPACE }} --resource-group ${{ env.RESOURCE_GROUP }} --query "[?display_name=='train-autoencoder'] | [0].name" -o tsv)
           echo "Waiting for job $JOB_ID to complete..."
-          az ml job wait --name $JOB_ID --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }}
+          STATUS=""
+          for i in {1..60}; do
+            STATUS=$(az ml job show --name $JOB_ID --workspace-name ${{ env.AML_WORKSPACE }} --resource-group ${{ env.RESOURCE_GROUP }} --query status -o tsv)
+            echo "Current status: $STATUS"
+            if [[ "$STATUS" == "Completed" ]]; then
+              echo "Job completed successfully."
+              exit 0
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Canceled" ]]; then
+              echo "Job failed or was canceled."
+              exit 1
+            fi
+            sleep 30
+          done
+          echo "Timeout waiting for job to complete."
+          exit 1
         shell: bash
 
       - name: Download model artifacts from train_autoencoder_component
