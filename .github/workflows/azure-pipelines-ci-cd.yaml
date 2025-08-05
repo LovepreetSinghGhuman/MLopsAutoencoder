@@ -108,7 +108,7 @@ jobs:
           MODEL_NAME=fraud-autoencoder
           MODEL_VERSION=$(az ml model list --name $MODEL_NAME --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --query "[0].version" -o tsv)
           echo "Latest model version: $MODEL_VERSION"
-          az ml model download --name $MODEL_NAME --version $MODEL_VERSION --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models --overwrite
+          az ml model download --name $MODEL_NAME --version $MODEL_VERSION --resource-group ${{ env.RESOURCE_GROUP }} --workspace-name ${{ env.AML_WORKSPACE }} --download-path ./models
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
