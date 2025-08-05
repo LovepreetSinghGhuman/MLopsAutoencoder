@@ -15,11 +15,3 @@ jobs:
     outputs:
       model_dir: 
         mode: upload
-
-  # register_model:
-  #   type: command
-  #   component: azureml:register_model:9
-  #   inputs:
-  #     model_path: ${{parent.jobs.train_autoencoder.outputs.model_dir}}
-  #     model_name: fraud_autoencoder
-  #   compute: azureml:mycpucluster
