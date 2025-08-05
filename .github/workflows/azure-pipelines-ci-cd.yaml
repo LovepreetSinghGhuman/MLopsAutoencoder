@@ -84,12 +84,7 @@ jobs:
             --path ./models \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --workspace-name ${{ env.AML_WORKSPACE }}
-
-      - name: Upload model artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: model-artifacts
-          path: ./models
+          echo "Model registered with version: $MODEL_VERSION"
 
   build-images:
     runs-on: ubuntu-latest
